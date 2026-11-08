@@ -1,0 +1,1126 @@
+// ============================================================================
+// miliconfig v3.1 - صفحه وضعیت و اشتراک اختصاصی کاربر (ارسالی به کاربر)
+// طراحی ۱۰۰٪ مطابق تصاویر 1000050224.jpg و 1000050225.jpg با برند miliconfig
+// ============================================================================
+
+import {
+  BRAND_NAME,
+  BRAND_UPPER,
+  CF_EDGE_DOMAINS,
+  COUNTRY_PROXY_SOURCES,
+  isEnabledValue,
+  normalizeEffectiveConfig
+} from '../config/defaults.js';
+import { CLOUD_LOGO_SVG, FAVICON_DATA_URI, SHIELD_LOGO_SVG, NEON_WAVES_AND_CURSOR_HTML, icon, stripEmoji } from './icons.js';
+import { formatBytes } from '../core/utils.js';
+
+export function renderUserStatusPageHtml(user, nodes = [], originUrl = '') {
+  const urlObj = new URL(originUrl || 'https://miliconfig.workers.dev');
+  const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
+  // همیشه از مسیر استاندارد /sub/{uuid} استفاده می‌شود تا لینک‌ها دقیقاً
+  // به ساب‌لینک همین کاربر متصل باشند (نه مسیر شخصی/ادمین).
+  const apiToken = user.id || user.uuid || '';
+  const subToken = user.uuid || user.id || '';
+  const baseSubUrl = `${baseUrl}/sub/${encodeURIComponent(subToken)}`;
+  const usageApiUrl = `${baseUrl}/api/status/${encodeURIComponent(apiToken)}`;
+  const statusUrl = `${baseUrl}/status/${encodeURIComponent(apiToken)}`;
+  const totalNodes = nodes.length;
+
+  const usedBytes = Number(user.usedBytes || 0);
+  const lifetimeBytes = Number(user.lifetimeBytes || 0);
+  const limitGb = Number(user.dataLimitGb || 0);
+  const limitBytes = limitGb > 0 ? limitGb * 1073741824 : 0;
+  const usagePercent = limitBytes > 0 ? Math.min(100, Math.round((usedBytes / limitBytes) * 100)) : 0;
+
+  let expireLabel = 'بدون انقضا';
+  if (user.expireAt > 0) {
+    const diffDays = Math.ceil((user.expireAt - Date.now()) / 86400000);
+    expireLabel = diffDays > 0 ? `${diffDays} روز باقی‌مانده` : 'منقضی شده';
+  } else if (user.startOnFirstUse && user.expireDays > 0) {
+    expireLabel = `${user.expireDays} روز (شروع با اولین اتصال)`;
+  }
+
+  // لوکیشن‌های واقعی اسکنر: هر کشور لینک ساب‌لینک کشوری خودش را می‌گیرد
+  const locationsList = Object.keys(COUNTRY_PROXY_SOURCES).map(code => ({
+    code,
+    title: COUNTRY_PROXY_SOURCES[code].name || code,
+    url: `${baseSubUrl}?country=${code}`
+  }));
+  locationsList.unshift({ code: 'MULTI', title: 'چند کشور (MULTI)', url: `${baseSubUrl}?country=MULTI` });
+
+
+  // لینک‌های این صفحه باید دقیقاً با تنظیمات همین کاربر هماهنگ باشند:
+  // فقط پروتکل‌ها و بخش‌هایی که در پنل برای او روشن است نمایش داده می‌شوند.
+  const userCfg = normalizeEffectiveConfig(user.config || {});
+  const warpEnabled = isEnabledValue(userCfg.warp, true) || isEnabledValue(userCfg.warpPro, false);
+  const ovpnEnabled = isEnabledValue(userCfg.ovpn, true);
+  const protoCombos = [
+    { title: 'اتصال هوشمند (همه نودها × همه پروتکل‌ها)', badge: 'Base64', url: baseSubUrl }
+  ];
+  if (isEnabledValue(userCfg.ev, true)) {
+    protoCombos.push({ title: 'فقط پروتکل VLESS (WebSocket + TLS)', badge: 'VLESS', url: `${baseSubUrl}?proto=vless` });
+  }
+  if (isEnabledValue(userCfg.et, true)) {
+    protoCombos.push({ title: 'فقط پروتکل Trojan (WebSocket + TLS)', badge: 'Trojan', url: `${baseSubUrl}?proto=trojan` });
+  }
+  if (isEnabledValue(userCfg.es, true)) {
+    protoCombos.push({ title: 'فقط پروتکل Shadowsocks (بدون فرگمنت)', badge: 'SS', url: `${baseSubUrl}?proto=ss` });
+  }
+  if (isEnabledValue(userCfg.ex, true)) {
+    protoCombos.push({ title: 'فقط پروتکل xhttp (ضد فیلتر پیشرفته)', badge: 'xhttp', url: `${baseSubUrl}?proto=xhttp` });
+  }
+  if (isEnabledValue(userCfg.epd, true)) {
+    protoCombos.push({ title: 'ساب‌لینک اختصاصی دامنه‌های کلادفلر (بدون آی‌پی)', badge: 'Domains', url: `${baseSubUrl}?set=domain` });
+  }
+  // ساب اختصاصی همراه اول: فقط نودهای IPv6 (بدون IPv4 و دامنه)
+  if (isEnabledValue(userCfg.ipv6, true)) {
+    protoCombos.push({
+      title: 'ساب اختصاصی IPv6 — همراه اول (فقط نودهای IPv6)',
+      badge: 'IPv6',
+      url: `${baseSubUrl}?set=ipv6`
+    });
+  }
+  if (isEnabledValue(userCfg.warp, true) || isEnabledValue(userCfg.warpPro, false)) {
+    protoCombos.push({ title: 'فقط نودهای WARP / WARP PRO / WARP چندلوکیشن', badge: 'WARP', url: `${baseSubUrl}?proto=warp` });
+  }
+  if (isEnabledValue(userCfg.ovpn, true)) {
+    protoCombos.push({ title: 'پروفایل OpenVPN (خروجی ‎.ovpn)', badge: 'OVPN', url: `${baseSubUrl}?target=ovpn` });
+    protoCombos.push({ title: 'بستهٔ کامل OpenVPN (ZIP چندفایلی)', badge: 'OVPN-ZIP', url: `${baseSubUrl}?target=ovpn&format=zip` });
+  }
+  protoCombos.push(
+    { title: 'فقط نودهای لبه CDN (Multi-Location)', badge: 'Edge', url: `${baseSubUrl}?scope=edge` },
+    { title: 'فقط سرور اصلی (بدون CDN)', badge: 'Origin', url: `${baseSubUrl}?scope=origin` },
+    { title: 'کانفیگ اختصاصی Clash Meta / Mihomo', badge: 'YAML', url: `${baseSubUrl}?target=clash` },
+    { title: 'کانفیگ اختصاصی Sing-box / Hiddify', badge: 'JSON', url: `${baseSubUrl}?target=singbox` },
+    { title: 'کانفیگ اختصاصی Surge', badge: 'INI', url: `${baseSubUrl}?target=surge` },
+    { title: 'کانفیگ اختصاصی Quantumult X', badge: 'QuanX', url: `${baseSubUrl}?target=quanx` },
+    { title: 'کانفیگ اختصاصی Loon', badge: 'Loon', url: `${baseSubUrl}?target=loon` },
+    { title: 'متن خام لینک‌ها (Raw Plaintext)', badge: 'RAW', url: `${baseSubUrl}?target=raw` }
+  );
+
+  const safeNodesJson = JSON.stringify(nodes).replace(/</g, '\\u003c');
+
+  return stripEmoji(`<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>وضعیت اشتراک ${user.username} — ${BRAND_UPPER}</title>
+  <link rel="icon" href="${FAVICON_DATA_URI}">
+  <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+  <style>
+    .mi { width: 16px; height: 16px; display: inline-block; vertical-align: -3px; }
+    :root {
+      --bg-0: #020804;
+      --bg-1: #06140b;
+      --card: rgba(6, 20, 11, 0.82);
+      --card-inner: rgba(11, 34, 20, 0.88);
+      --border: rgba(0, 255, 102, 0.22);
+      --border-hi: rgba(0, 255, 102, 0.55);
+      --neon: #00ff66;
+      --neon-dim: rgba(0, 255, 102, 0.14);
+      --text: #f0fdf4;
+      --muted: #86efac;
+      --danger: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Vazirmatn", Tahoma, sans-serif;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(132, 204, 22, 0.18) 0%, transparent 48%),
+        radial-gradient(circle at 85% 90%, rgba(101, 163, 13, 0.14) 0%, transparent 45%),
+        var(--bg-0);
+      color: var(--text);
+      padding: 18px 14px 90px;
+      line-height: 1.6;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(163, 230, 53, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(163, 230, 53, 0.04) 1px, transparent 1px);
+      background-size: 36px 36px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .status-hero {
+      background: var(--card);
+      border: 1px solid var(--border-hi);
+      border-radius: 22px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.6);
+    }
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .hero-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .hero-logo {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+    }
+    .hero-logo svg { width: 100%; height: 100%; }
+    .hero-name {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .hero-brand {
+      font-size: 0.76rem;
+      color: var(--neon);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: var(--neon-dim);
+      border: 1px solid var(--border-hi);
+      color: var(--neon);
+    }
+    .pill-off {
+      background: rgba(248, 113, 113, 0.14);
+      border-color: rgba(248, 113, 113, 0.4);
+      color: var(--danger);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    @media (min-width: 520px) {
+      .stats-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .stat-box {
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 11px 12px;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .stat-val {
+      font-size: 0.96rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .usage-track {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin: 2px 0 8px;
+    }
+    .usage-track i {
+      display: block;
+      height: 100%;
+      min-width: 2px;
+      background: linear-gradient(90deg, #a3e635, #b5ff4d);
+      transition: width 0.5s ease;
+    }
+    .usage-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.76rem;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .url-copy-box {
+      background: #060b06;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .url-text {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.8rem;
+      color: #d7e8cf;
+      direction: ltr;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 9px 16px;
+      cursor: pointer;
+      font-size: 0.84rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.18s;
+      flex-shrink: 0;
+    }
+    .copy-btn:hover {
+      border-color: var(--neon);
+      color: var(--neon);
+      background: var(--neon-dim);
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 22px 4px 10px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .section-head .sub-meta {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .acc-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .acc-card.open {
+      border-color: var(--border-hi);
+    }
+    .acc-header {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: right;
+    }
+    .acc-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .acc-title {
+      font-size: 0.96rem;
+      font-weight: 800;
+    }
+    .acc-count {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .acc-arrow {
+      font-size: 0.9rem;
+      color: var(--muted);
+      transition: transform 0.22s;
+    }
+    .acc-card.open .acc-arrow {
+      transform: rotate(180deg);
+      color: var(--neon);
+    }
+    .acc-body {
+      display: none;
+      padding: 0 18px 18px;
+      border-top: 1px solid rgba(163, 230, 53, 0.1);
+    }
+    .acc-card.open .acc-body {
+      display: block;
+    }
+    .client-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin: 12px 0 14px;
+      line-height: 1.65;
+    }
+    .client-item {
+      padding: 14px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .client-item:first-of-type { border-top: none; }
+    .client-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .client-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .client-name {
+      font-size: 0.98rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .client-os {
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+    .tag-green {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--neon);
+      background: rgba(163, 230, 53, 0.12);
+      border: 1px solid rgba(163, 230, 53, 0.35);
+    }
+    .dl-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 11px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .dl-btn:hover {
+      border-color: var(--neon);
+      color: var(--neon);
+    }
+    .node-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      margin-top: 8px;
+    }
+    .node-tag {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--neon);
+      direction: ltr;
+    }
+    .node-proto {
+      font-size: 0.74rem;
+      color: var(--muted);
+    }
+    .fab-refresh {
+      position: fixed;
+      bottom: 22px;
+      left: 22px;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: #060a06;
+      border: 1px solid var(--border-hi);
+      color: var(--text);
+      font-size: 1.2rem;
+      cursor: pointer;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      transition: all 0.2s;
+    }
+    .fab-refresh:hover {
+      color: var(--neon);
+      transform: rotate(90deg);
+    }
+    .toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #112211;
+      border: 1px solid var(--neon);
+      color: var(--neon);
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    }
+  </style>
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+
+  <div class="container">
+    <!-- کارت اصلی وضعیت کاربر -->
+    <div class="status-hero">
+      <div class="hero-top">
+        <div class="hero-user">
+          <div class="hero-logo">${SHIELD_LOGO_SVG}</div>
+          <div>
+            <div class="hero-name">${user.username}</div>
+            <div class="hero-brand">${BRAND_UPPER} SUBSCRIPTION PORTAL</div>
+          </div>
+        </div>
+        <span class="pill ${user.enabled ? '' : 'pill-off'}" id="statusPill">
+          ● ${user.enabled ? (user.startOnFirstUse && !user.firstConnectedAt ? 'شروع با اولین اتصال' : 'فعال و آنلاین') : 'غیرفعال'}
+        </span>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-label">مصرف فعلی</div>
+          <div class="stat-val" id="statUsed">${formatBytes(usedBytes)}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">سهمیه حجم</div>
+          <div class="stat-val" id="statLimit">${limitGb > 0 ? `${limitGb} GB (${usagePercent}%)` : '∞ نامحدود'}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">تعداد نود در ساب</div>
+          <div class="stat-val" id="statNodes">${totalNodes} نود (${BRAND_NAME})</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">وضعیت انقضا</div>
+          <div class="stat-val" id="statExpire">${expireLabel}</div>
+        </div>
+      </div>
+      <div class="usage-track" title="مصرف واقعی ثبت‌شده در پنل">
+        <i id="usageBar" style="width:${usagePercent}%"></i>
+      </div>
+      <div class="usage-meta">
+        <span id="usageMeta">${limitGb > 0 ? `${formatBytes(usedBytes)} از ${limitGb} GB` : formatBytes(usedBytes) + ' مصرف‌شده'}</span>
+        <span id="usageUpdated"></span>
+      </div>
+
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:4px;">لینک مستقیم صفحه وضعیت و اشتراک شما:</div>
+      <div class="url-copy-box">
+        <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}', 'لینک اشتراک هوشمند کپی شد')">${icon('copy')} کپی ساب‌لینک</button>
+        <button type="button" class="copy-btn" onclick="openQrModal('${baseSubUrl}')" style="border-color:rgba(0,255,102,0.45);color:var(--neon);">QR Code</button>
+        <div class="url-text">${baseSubUrl}</div>
+      </div>
+      <!-- دانلود مستقیم کانفیگ‌های آماده — فقط بخش‌هایی که برای این کاربر روشن است -->
+      <div class="toolbar" style="margin-top:10px;">
+        ${warpEnabled ? `<a class="copy-btn" href="${baseUrl}/warp/${encodeURIComponent(subToken)}?format=zip" download>${icon('zip')} دانلود ZIP همهٔ فرمت‌های WARP (AmneziaWG · WireGuard · Clash · sing-box)</a>
+        <a class="copy-btn" href="${baseUrl}/warp/${encodeURIComponent(subToken)}?format=conf" download>${icon('download')} فایل WARP.conf</a>
+        <a class="copy-btn" href="${baseUrl}/warp/${encodeURIComponent(subToken)}?format=clash" download>${icon('download')} پروفایل Clash</a>
+        <a class="copy-btn" href="${baseUrl}/warp/${encodeURIComponent(subToken)}?format=singbox" download>${icon('download')} کانفیگ sing-box</a>
+        <a class="copy-btn" href="${baseUrl}/warp/${encodeURIComponent(subToken)}?format=links" download>${icon('download')} لینک‌های wireguard (NekoBox/Hiddify)</a>
+        <a class="copy-btn" href="${baseUrl}/warp/masque/${encodeURIComponent(subToken)}?format=zip" download>${icon('zip')} ZIP جداگانهٔ WARP MASQUE (HTTP/3)</a>` : ''}
+        ${ovpnEnabled ? `<a class="copy-btn" href="${baseSubUrl}?target=ovpn&format=zip" download>${icon('zip')} دانلود ZIP پروفایل‌های OpenVPN</a>` : ''}
+      </div>
+    </div>
+
+    <!-- محدوده نودها -->
+    <div class="section-head">
+      <span>${icon('globe')} محدودهٔ نودها</span>
+      <span class="sub-meta">همه نودها (${totalNodes} نود با فرمت number+${BRAND_NAME})</span>
+    </div>
+    <div class="acc-card" id="accScope">
+      <button type="button" class="acc-header" onclick="toggleAcc('accScope')">
+        <div class="acc-title-wrap">
+          <span class="acc-title">فقط بخشی از نودها را می‌خواهید؟</span>
+          <span class="acc-count">۴ گزینه · ${totalNodes} نود در کل</span>
+        </div>
+        <span class="acc-arrow">⌄</span>
+      </button>
+      <div class="acc-body">
+        <p class="client-desc">تعداد کانفیگ‌ها توسط موتور کانفیگ‌ساز تعیین می‌شود و قابل انتخاب نیست؛ فقط می‌توانید محدودهٔ نودها (دامنه/سرور اصلی/لوکیشن) را فیلتر کنید:</p>
+        <div class="client-item">
+          <div class="client-top">
+            <span class="client-name">همه نودهای کاربر (${totalNodes} نود)</span>
+            <span class="tag-green">پیش‌فرض کاربر</span>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}', 'کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}</div>
+          </div>
+        </div>
+        <div class="client-item">
+          <div class="client-top">
+            <span class="client-name">فقط نودهای لبه CDN</span>
+            <span class="tag-green">Multi-Location</span>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}?scope=edge', 'کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}?scope=edge</div>
+          </div>
+        </div>
+        <div class="client-item">
+          <div class="client-top">
+            <span class="client-name">فقط سرور اصلی (بدون CDN)</span>
+            <span class="tag-green">Direct Origin</span>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}?scope=origin', 'کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}?scope=origin</div>
+          </div>
+        </div>
+        <div class="client-item">
+          <div class="client-top">
+            <span class="client-name">فقط نودهای دامنه‌محور کلادفلر (${CF_EDGE_DOMAINS.length} دامنهٔ تأییدشده)</span>
+            <span class="tag-green">Domain Edge</span>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}?set=domain', 'کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}?set=domain</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- لوکیشن‌ها -->
+    <div class="section-head">
+      <span>${icon('globe')} لوکیشن‌ها</span>
+      <span class="sub-meta">هر کشور یک سابلینک جدا</span>
+    </div>
+    <div class="acc-card" id="accLocations">
+      <button type="button" class="acc-header" onclick="toggleAcc('accLocations')">
+        <div class="acc-title-wrap">
+          <span class="acc-title">سابلینک لوکیشن‌محور</span>
+          <span class="acc-count">${locationsList.length} لوکیشن</span>
+        </div>
+        <span class="acc-arrow">⌄</span>
+      </button>
+      <div class="acc-body">
+        <p class="client-desc">با استفاده از هر لینک، مسیر خروجی روی همان منطقه تنظیم می‌شود:</p>
+        ${locationsList
+          .map(
+            loc => `
+          <div class="client-item">
+            <div class="client-top">
+              <span class="client-name">${loc.title}</span>
+              <span class="tag-green">${loc.code}</span>
+            </div>
+            <div class="url-copy-box">
+              <button type="button" class="copy-btn" onclick="copyText('${loc.url}', 'لینک لوکیشن ${loc.code} کپی شد')">${icon('copy')}</button>
+              <div class="url-text">${loc.url}</div>
+            </div>
+          </div>`
+          )
+          .join('')}
+      </div>
+    </div>
+
+    <!-- سابلینک اختصاصی هر کلاینت -->
+    <div class="section-head">
+      <span>${icon('shield')} سابلینک اختصاصی هر کلاینت</span>
+      <span class="sub-meta">16 کلاینت در 5 خانواده</span>
+    </div>
+
+    <!-- شروع سریع -->
+    <div class="acc-card open" id="accQuickStart">
+      <button type="button" class="acc-header" onclick="toggleAcc('accQuickStart')">
+        <div class="acc-title-wrap">
+          <span class="acc-title">شروع سریع</span>
+          <span class="acc-count">1 کلاینت</span>
+          <span class="tag-green">پیشنهادی</span>
+        </div>
+        <span class="acc-arrow">⌄</span>
+      </button>
+      <div class="acc-body">
+        <p class="client-desc">یک لینک برای همه‌چیز؛ سریع‌ترین نود بر اساس پینگ، مناسب هر کلاینتی.</p>
+        <div class="client-top">
+          <div class="client-name-row">
+            <span class="client-name">اتصال هوشمند</span>
+            <span class="client-os">همه پلتفرم‌ها</span>
+          </div>
+          <span class="tag-green">اتصال هوشمند (همه نودها × همه پروتکل‌ها)</span>
+        </div>
+        <div class="url-copy-box">
+          <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}', 'سابلینک هوشمند کپی شد')">${icon('copy')}</button>
+          <div class="url-text">${baseSubUrl}</div>
+        </div>
+        <div style="font-size:0.78rem;color:var(--muted);margin-top:8px;">سریع‌ترین نود بر اساس پینگ واقعی؛ مناسب شروع سریع.</div>
+      </div>
+    </div>
+
+    <!-- خانواده 1: Xray / Base64 -->
+    <div class="acc-card open" id="accXray">
+      <button type="button" class="acc-header" onclick="toggleAcc('accXray')">
+        <div class="acc-title-wrap">
+          <span class="acc-title">خانواده Xray / متن ساده — Base64</span>
+          <span class="acc-count">7 کلاینت</span>
+        </div>
+        <span class="acc-arrow">⌄</span>
+      </button>
+      <div class="acc-body">
+        <p class="client-desc">v2rayNG، Exclusive، Amnezia، Streisand، Shadowrocket، V2Box و FoXray سابلینک Base64 (یا متن ساده) می‌خوانند.</p>
+
+        <div class="client-item">
+          <div class="client-top">
+            <div class="client-name-row">
+              <span class="client-name">v2rayNG</span>
+              <span class="client-os">Android</span>
+              <span class="tag-green">Base64 (V2Ray)</span>
+            </div>
+            <a class="dl-btn" href="https://github.com/2dust/v2rayNG/releases" target="_blank" rel="noopener">${icon('download')} دانلود کلاینت</a>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}', 'لینک v2rayNG کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}</div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:6px;">پرکاربردترین کلاینت اندروید؛ فرگمنت، sni و vless را کامل پشتیبانی می‌کند.</div>
+        </div>
+
+        <div class="client-item">
+          <div class="client-top">
+            <div class="client-name-row">
+              <span class="client-name">Exclusive</span>
+              <span class="client-os">Android</span>
+              <span class="tag-green">Base64 (V2Ray)</span>
+            </div>
+            <a class="dl-btn" href="https://github.com/GFW-knocker/MahsaNG/releases" target="_blank" rel="noopener">${icon('download')} دانلود کلاینت</a>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}', 'لینک Exclusive کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}</div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:6px;">کلاینت اندروید؛ از سابلینک استاندارد Base64 استفاده می‌کند.</div>
+        </div>
+
+        <div class="client-item">
+          <div class="client-top">
+            <div class="client-name-row">
+              <span class="client-name">Amnezia VPN</span>
+              <span class="client-os">Android · iOS · دسکتاپ</span>
+              <span class="tag-green">Base64 (V2Ray)</span>
+            </div>
+            <a class="dl-btn" href="https://amnezia.org/en/downloads" target="_blank" rel="noopener">${icon('download')} دانلود کلاینت</a>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}', 'لینک Amnezia کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}</div>
+          </div>
+        </div>
+
+        <div class="client-item">
+          <div class="client-top">
+            <div class="client-name-row">
+              <span class="client-name">Streisand</span>
+              <span class="client-os">iOS · macOS</span>
+              <span class="tag-green">Base64 (V2Ray)</span>
+            </div>
+            <a class="dl-btn" href="https://apps.apple.com/app/streisand/id6450534064" target="_blank" rel="noopener">${icon('download')} دانلود کلاینت</a>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}', 'لینک Streisand کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}</div>
+          </div>
+        </div>
+
+        <div class="client-item">
+          <div class="client-top">
+            <div class="client-name-row">
+              <span class="client-name">Shadowrocket</span>
+              <span class="client-os">iOS</span>
+              <span class="tag-green">Base64 (V2Ray)</span>
+            </div>
+            <a class="dl-btn" href="https://apps.apple.com/app/shadowrocket/id932747118" target="_blank" rel="noopener">${icon('download')} دانلود کلاینت</a>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}', 'لینک Shadowrocket کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}</div>
+          </div>
+        </div>
+
+        <div class="client-item">
+          <div class="client-top">
+            <div class="client-name-row">
+              <span class="client-name">V2Box</span>
+              <span class="client-os">Android · iOS</span>
+              <span class="tag-green">Base64 (V2Ray)</span>
+            </div>
+            <a class="dl-btn" href="https://apps.apple.com/app/v2box-v2ray-client/id6446814690" target="_blank" rel="noopener">${icon('download')} دانلود کلاینت</a>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}', 'لینک V2Box کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}</div>
+          </div>
+        </div>
+
+        <div class="client-item">
+          <div class="client-top">
+            <div class="client-name-row">
+              <span class="client-name">v2rayN / Nekoray</span>
+              <span class="client-os">Windows · Linux · macOS</span>
+              <span class="tag-green">Base64 (V2Ray)</span>
+            </div>
+            <a class="dl-btn" href="https://github.com/2dust/v2rayN/releases" target="_blank" rel="noopener">${icon('download')} دانلود کلاینت</a>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}', 'لینک v2rayN کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- خانواده 2: sing-box — JSON -->
+    <div class="acc-card" id="accSingbox">
+      <button type="button" class="acc-header" onclick="toggleAcc('accSingbox')">
+        <div class="acc-title-wrap">
+          <span class="acc-title">خانواده sing-box — JSON</span>
+          <span class="acc-count">5 کلاینت</span>
+        </div>
+        <span class="acc-arrow">⌄</span>
+      </button>
+      <div class="acc-body">
+        <p class="client-desc">مناسب Hiddify، Sing-box (نسخه 1.12 به بالا)، Karing، NekoBox و Exclave:</p>
+        <div class="client-item">
+          <div class="client-top">
+            <div class="client-name-row">
+              <span class="client-name">Hiddify / Sing-box</span>
+              <span class="client-os">همه پلتفرم‌ها</span>
+              <span class="tag-green">JSON (Sing-box)</span>
+            </div>
+            <a class="dl-btn" href="https://github.com/hiddify/hiddify-app/releases" target="_blank" rel="noopener">${icon('download')} دانلود کلاینت</a>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}?target=singbox', 'لینک Sing-box کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}?target=singbox</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- خانواده 3: Clash / Mihomo — فقط YAML -->
+    <div class="acc-card" id="accClash">
+      <button type="button" class="acc-header" onclick="toggleAcc('accClash')">
+        <div class="acc-title-wrap">
+          <span class="acc-title">خانواده Clash / Mihomo — فقط YAML</span>
+          <span class="acc-count">2 کلاینت</span>
+        </div>
+        <span class="acc-arrow">⌄</span>
+      </button>
+      <div class="acc-body">
+        <p class="client-desc">مناسب Clash Meta for Android (CMFA)، Clash Verge Rev، FlClash و Stash:</p>
+        <div class="client-item">
+          <div class="client-top">
+            <div class="client-name-row">
+              <span class="client-name">Clash Meta / Verge / FlClash</span>
+              <span class="client-os">Android · Windows · macOS</span>
+              <span class="tag-green">YAML (Mihomo)</span>
+            </div>
+            <a class="dl-btn" href="https://github.com/MetaCubeX/ClashMetaForAndroid/releases" target="_blank" rel="noopener">${icon('download')} دانلود کلاینت</a>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}?target=clash', 'لینک Clash کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}?target=clash</div>
+          </div>
+        </div>
+        ${
+          user.config?.jk === 'yes'
+            ? `<div class="client-item">
+          <div class="client-top">
+            <div class="client-name-row">
+              <span class="client-name">CLASH زنجیره اینترنت خانگی</span>
+              <span class="client-os">Mihomo 1.19.25+</span>
+              <span class="tag-green">Residential IP</span>
+            </div>
+          </div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}?target=vg', 'لینک CLASH خانگی کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}?target=vg</div>
+          </div>
+        </div>`
+            : ''
+        }
+      </div>
+    </div>
+
+    <!-- خانواده 4: هسته‌ها و ابزارها -->
+    <div class="acc-card" id="accTools">
+      <button type="button" class="acc-header" onclick="toggleAcc('accTools')">
+        <div class="acc-title-wrap">
+          <span class="acc-title">هسته‌ها و ابزارها (Surge / QuanX / Loon)</span>
+          <span class="acc-count">3 کلاینت</span>
+        </div>
+        <span class="acc-arrow">⌄</span>
+      </button>
+      <div class="acc-body">
+        <div class="client-item">
+          <div class="client-top"><span class="client-name">Surge</span><span class="tag-green">INI</span></div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}?target=surge', 'لینک Surge کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}?target=surge</div>
+          </div>
+        </div>
+        <div class="client-item">
+          <div class="client-top"><span class="client-name">Quantumult X</span><span class="tag-green">QuanX</span></div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}?target=quanx', 'لینک Quantumult X کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}?target=quanx</div>
+          </div>
+        </div>
+        <div class="client-item">
+          <div class="client-top"><span class="client-name">Loon</span><span class="tag-green">Loon</span></div>
+          <div class="url-copy-box">
+            <button type="button" class="copy-btn" onclick="copyText('${baseSubUrl}?target=loon', 'لینک Loon کپی شد')">${icon('copy')}</button>
+            <div class="url-text">${baseSubUrl}?target=loon</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- سابلینک به تفکیک پروتکل و ترنسپورت -->
+    <div class="section-head">
+      <span>${icon('link')} سابلینک به تفکیک پروتکل و ترنسپورت</span>
+      <span class="sub-meta">${protoCombos.length} ترکیب</span>
+    </div>
+    <div class="acc-card" id="accCombos">
+      <button type="button" class="acc-header" onclick="toggleAcc('accCombos')">
+        <div class="acc-title-wrap">
+          <span class="acc-title">لیست ترکیب‌های نود × پروتکل</span>
+          <span class="acc-count">${protoCombos.length} لینک</span>
+        </div>
+        <span class="acc-arrow">⌄</span>
+      </button>
+      <div class="acc-body">
+        ${protoCombos
+          .map(
+            c => `
+          <div class="client-item">
+            <div class="client-top">
+              <span class="client-name">${c.title}</span>
+              <span class="tag-green">${c.badge}</span>
+            </div>
+            <div class="url-copy-box">
+              <button type="button" class="copy-btn" onclick="copyText('${c.url}', 'کپی شد')">${icon('copy')}</button>
+              <div class="url-text">${c.url}</div>
+            </div>
+          </div>`
+          )
+          .join('')}
+      </div>
+    </div>
+
+    <!-- لیست تکی نودهای خروجی با فرمت number+miliconfig -->
+    <div class="section-head">
+      <span>${icon('bolt')} نودها</span>
+      <span class="sub-meta">${totalNodes} از ${totalNodes} آنلاین · نام‌گذاری number+${BRAND_NAME}</span>
+    </div>
+    <div class="acc-card open" id="accNodes">
+      <button type="button" class="acc-header" onclick="toggleAcc('accNodes')">
+        <div class="acc-title-wrap">
+          <span class="acc-title">لیست کانفیگ‌های خروجی (1+${BRAND_NAME} تا ${totalNodes}+${BRAND_NAME})</span>
+          <span class="acc-count">${totalNodes} کانفیگ</span>
+        </div>
+        <span class="acc-arrow">⌄</span>
+      </button>
+      <div class="acc-body">
+        <div style="margin:12px 0;">
+          <button type="button" class="copy-btn" style="width:100%;justify-content:center;" onclick="copyAllNodes()">
+            ${icon('copy')} کپی یکجای همه ${totalNodes} کانفیگ (1+${BRAND_NAME} تا ${totalNodes}+${BRAND_NAME})
+          </button>
+        </div>
+        <div id="nodesContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <button type="button" class="fab-refresh" onclick="window.location.reload()" title="بروزرسانی وضعیت">${icon('refresh')}</button>
+
+
+  <div id="qrModal" style="position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(2,8,4,0.8);backdrop-filter:blur(8px);" onclick="if(event.target.id==='qrModal')this.style.display='none'">
+    <div style="width:min(360px,100%);background:#06140b;border:1px solid rgba(0,255,102,0.45);border-radius:20px;padding:20px;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,0.8);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <b style="color:#00ff66;font-size:0.95rem;">کیوآر کد اشتراک (QR Code)</b>
+        <button type="button" class="copy-btn" style="padding:4px 10px;" onclick="document.getElementById('qrModal').style.display='none'">✕</button>
+      </div>
+      <div id="qrContainer" style="background:#fff;padding:14px;border-radius:14px;display:inline-block;margin-bottom:14px;"></div>
+      <div>
+        <button type="button" class="copy-btn" style="width:100%;justify-content:center;border-color:#00ff66;color:#00ff66;" onclick="downloadQrImg()">دانلود تصویر QR</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var ALL_NODES = ${safeNodesJson};
+
+    function showToast(msg) {
+      var t = document.getElementById('toast');
+      if (!t) return;
+      t.textContent = msg;
+      t.style.display = 'block';
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(function() {
+        t.style.display = 'none';
+      }, 2500);
+    }
+
+    function copyText(text, msg) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          showToast(msg || 'کپی شد');
+        });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast(msg || 'کپی شد');
+      }
+    }
+
+    function copyAllNodes() {
+      copyText(ALL_NODES.join('\\n'), 'همه کانفیگ‌ها کپی شدند');
+    }
+
+    function toggleAcc(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.toggle('open');
+    }
+
+    function renderNodes() {
+      var container = document.getElementById('nodesContainer');
+      if (!container) return;
+      var html = '';
+      for (var i = 0; i < ALL_NODES.length; i++) {
+        var link = ALL_NODES[i];
+        var hashIdx = link.indexOf('#');
+        var name = hashIdx > -1 ? decodeURIComponent(link.substring(hashIdx + 1)) : ((i + 1) + '+${BRAND_NAME}');
+        var proto = link.split('://')[0].toUpperCase();
+        html += '<div class="node-row">' +
+          '<div><div class="node-tag">' + name + '</div><div class="node-proto">' + proto + ' · Cloudflare Edge</div></div>' +
+          '<button type="button" class="copy-btn" onclick="copyNodeByIndex(' + i + ')">${icon('copy')} کپی کانفیگ</button>' +
+          '</div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function copyNodeByIndex(idx) {
+      var link = ALL_NODES[idx];
+      if (!link) return;
+      copyText(link, 'کانفیگ ' + (idx + 1) + '+${BRAND_NAME} کپی شد');
+    }
+
+    function fmtBytesClient(bytes) {
+      var n = Number(bytes || 0);
+      if (n <= 0) return '0 B';
+      var units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      var i = Math.floor(Math.log(n) / Math.log(1024));
+      if (i < 0) i = 0;
+      if (i > units.length - 1) i = units.length - 1;
+      return (n / Math.pow(1024, i)).toFixed(i >= 3 ? 2 : 1) + ' ' + units[i];
+    }
+
+    // اتصال مستقیم نمایشگر مصرف به آمار واقعی پنل (D1)
+    function refreshUsage() {
+      fetch('${usageApiUrl}?t=' + Date.now(), { cache: 'no-store' })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data || !data.success || !data.user) return;
+          var u = data.user;
+          var used = Number(u.usedBytes || 0);
+          var limitGb = Number(u.dataLimitGb || 0);
+          var limitBytes = limitGb > 0 ? limitGb * 1073741824 : 0;
+          var pct = limitBytes > 0 ? Math.min(100, Math.round((used / limitBytes) * 100)) : 0;
+          var usedEl = document.getElementById('statUsed');
+          if (usedEl) usedEl.textContent = fmtBytesClient(used);
+          var limitEl = document.getElementById('statLimit');
+          if (limitEl) limitEl.textContent = limitGb > 0 ? (limitGb + ' GB (' + pct + '%)') : '∞ نامحدود';
+          var nodesEl = document.getElementById('statNodes');
+          if (nodesEl) nodesEl.textContent = (data.nodeCount || 0) + ' نود (${BRAND_NAME})';
+          var bar = document.getElementById('usageBar');
+          if (bar) bar.style.width = Math.max(pct, used > 0 ? 2 : 0) + '%';
+          var meta = document.getElementById('usageMeta');
+          if (meta) meta.textContent = limitGb > 0 ? (fmtBytesClient(used) + ' از ' + limitGb + ' GB') : (fmtBytesClient(used) + ' مصرف‌شده');
+          var expEl = document.getElementById('statExpire');
+          if (expEl) {
+            if (u.expireAt > 0) {
+              var days = Math.ceil((u.expireAt - Date.now()) / 86400000);
+              expEl.textContent = days > 0 ? (days + ' روز باقی‌مانده') : 'منقضی شده';
+            } else {
+              expEl.textContent = 'بدون انقضا';
+            }
+          }
+          var pillar = document.getElementById('statusPill');
+          if (pillar) {
+            pillar.textContent = u.enabled ? '● فعال و آنلاین' : '● غیرفعال';
+            pillar.className = 'pill' + (u.enabled ? '' : ' pill-off');
+          }
+          var upd = document.getElementById('usageUpdated');
+          if (upd) upd.textContent = 'آخرین بروزرسانی: ' + new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+        })
+        .catch(function() {});
+    }
+
+
+    function openQrModal(url) {
+      var m = document.getElementById('qrModal');
+      var c = document.getElementById('qrContainer');
+      if (!m || !c) return;
+      c.innerHTML = '';
+      if (typeof QRCodeStyling !== 'undefined') {
+        var qr = new QRCodeStyling({
+          width: 230, height: 230, data: url, margin: 4,
+          dotsOptions: { color: '#020804', type: 'rounded' },
+          backgroundOptions: { color: '#ffffff' }
+        });
+        qr.append(c);
+      }
+      m.style.display = 'flex';
+    }
+    function downloadQrImg() {
+      var canvas = document.querySelector('#qrContainer canvas');
+      if (!canvas) return;
+      var a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = 'miliconfig-qr.png';
+      a.click();
+    }
+
+    renderNodes();
+    refreshUsage();
+    setInterval(refreshUsage, 30000);
+  </script>
+${NEON_WAVES_AND_CURSOR_HTML}
+</body>
+</html>`);
+}

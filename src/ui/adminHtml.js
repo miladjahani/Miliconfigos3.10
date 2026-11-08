@@ -1,0 +1,4610 @@
+// ============================================================================
+// miliconfig v3.2 - مرکز کنترل مدیریت پنل
+// بدون ایموجی - تمام آیکون‌ها SVG اختصاصی - دکمه‌ها با event delegation
+// ============================================================================
+
+import {
+  BRAND_NAME,
+  BRAND_UPPER,
+  CF_PORT_CHOICES,
+  CONFIG_DEFAULTS,
+  COUNTRY_PROXY_SOURCES,
+  DNS_PRESETS,
+  ECH_DOMAINS,
+  FINGERPRINT_PRESETS,
+  FRAGMENT_PRESETS,
+  MAX_USERS_LIMIT,
+  PATH_PATTERNS,
+  TELEGRAM_SUPPORT,
+  VERSION
+} from '../config/defaults.js';
+import { IP_POOL, IP_POOL_COUNTRIES, IP_POOL_COUNTRY_NAMES } from '../config/ipPool.js';
+import { USER_PRESETS } from '../config/presets.js';
+import { EDGE_VIP_COUNTRIES } from '../config/sources.js';
+import { FAVICON_DATA_URI, SHIELD_LOGO_SVG, NEON_WAVES_AND_CURSOR_HTML, icon, stripEmoji } from './icons.js';
+import { PWA_CLIENT_JS, PWA_HEAD_TAGS } from './pwa.js';
+
+const SUPPORT_URL = `https://t.me/${String(TELEGRAM_SUPPORT).replace(/^@/, '')}`;
+
+// دیکشنری دوزبانه پنل (فارسی / انگلیسی)
+const PANEL_I18N = {
+  fa: {
+    'nav.dashboard': 'داشبورد', 'nav.users': 'کاربران', 'nav.settings': 'تنظیمات',
+    'nav.scanner': 'اسکنر', 'nav.locations': 'چندلوکیشن',
+    'top.support': 'پشتیبانی', 'top.multi': 'چندلوکیشن', 'top.theme': 'حالت روز', 'top.lang': 'English',
+    'panel.dashboard': 'داشبورد', 'panel.dashboardSub': 'وضعیت زنده سیستم و مصرف',
+    'panel.users': 'کاربران', 'panel.usersSub': 'مدیریت اشتراک و محدودیت',
+    'panel.settings': 'تنظیمات', 'panel.settingsSub': 'هسته پروکسی، شبکه و پنل',
+    'panel.scanner': 'اسکنر زنده', 'panel.scannerSub': 'دریافت زنده پروکسی و آی‌پی ثابت (IPv4/IPv6) به تفکیک کشور',
+    'panel.locations': 'چندلوکیشن', 'panel.locationsSub': 'ساب‌لینک به تفکیک کشور',
+    'btn.reload': 'بروزرسانی', 'btn.createUser': 'ایجاد کاربر', 'btn.newUser': 'کاربر جدید',
+    'btn.save': 'ذخیره تنظیمات', 'btn.reset': 'بازنشانی پیش‌فرض', 'btn.copyMaster': 'کپی ساب‌لینک اصلی',
+    'btn.scan': 'دریافت و تست', 'btn.password': 'تغییر رمز مدیر',
+    'metric.users': 'کاربران فعال', 'metric.traffic': 'حجم مصرف‌شده',
+    'metric.ips': 'آی‌پی‌های سالم', 'metric.protocols': 'پروتکل‌های فعال',
+    'settings.protocols': 'پروتکل‌ها و قابلیت‌ها', 'settings.network': 'شبکه و ترنسپورت', 'settings.panel': 'پنل و امنیت',
+    'scanner.country': 'کشور', 'scanner.kind': 'نوع', 'scanner.family': 'خانواده آی‌پی',
+    'scanner.count': 'تعداد',    'scanner.addCfIps': 'افزودن آی‌پی‌های پیش‌فرض کلادفلر به آدرس‌های دستی',
+    'scanner.addCfDomains': 'افزودن دامنه‌های پیش‌فرض کلادفلر به آدرس‌های دستی',
+    'btn.editUser': 'ویرایش', 'card.nodesAuto': 'تعداد نود: خودکار',
+    'modal.create': 'ایجاد کاربر جدید', 'modal.username': 'نام کاربری', 'modal.preset': 'پریست',
+    'modal.limit': 'حجم مجاز (GB) — صفر برای نامحدود', 'modal.days': 'مدت اعتبار (روز) — صفر برای بدون انقضا',
+    'modal.nodes': 'تعداد نود در ساب‌لینک', 'modal.createBtn': 'ساخت کاربر', 'modal.cancel': 'انصراف',
+    'modal.advanced': 'تنظیمات منحصر به فرد این کاربر',
+    'modal.password': 'تغییر رمز مدیر', 'modal.old': 'رمز فعلی', 'modal.new': 'رمز جدید',
+    'modal.confirmNew': 'تکرار رمز جدید', 'modal.savePassword': 'ذخیره رمز',
+    'field.echDomain': 'دامنه ECH', 'field.dns': 'DNS سفارشی (DoH)', 'field.fragPreset': 'پریست فرگمنت',
+    'field.ports': 'پورت‌های نود', 'field.fp': 'اثر انگشت TLS', 'field.patt': 'الگوی مسیر',
+    'field.rotation': 'چرخش آی‌پی', 'field.proxyIP': 'آدرس واسط سفارشی', 'field.locCount': 'تعداد نود چندلوکیشن',
+    'field.outProxy': 'پروکسی خروجی', 'field.dnsHint': 'یک DNS از لیست انتخاب کنید یا مقدار دلخواه DoH بنویسید.',
+    'field.adminPath': 'مسیر مدیریت تصادفی', 'field.customPath': 'مسیر سفارشی پنل',
+    'field.homepage': 'صفحهٔ استتار', 'field.yx': 'آدرس‌های دستی', 'field.nodeCount': 'تعداد نود هر کاربر',
+    'warn.title': 'هشدار تداخل تنظیمات:',
+    'card.usage': 'مصرف', 'card.expiry': 'انقضا', 'card.unlimited': 'نامحدود',
+    'card.noExpiry': 'بدون انقضا', 'card.nodes': 'نود', 'card.active': 'فعال',
+    'card.inactive': 'غیرفعال', 'card.preset': 'پریست', 'card.subscription': 'اشتراک فعال',
+    'btn.copySub': 'ساب', 'btn.status': 'وضعیت', 'btn.resetUser': 'ریست', 'btn.testNodes': 'تست اتصال',
+    'btn.domainSub': 'دامنه‌ها',
+    'btn.rotatePath': 'مسیر جدید', 'btn.addToYx': 'افزودن به آدرس‌های دستی', 'btn.connectS': 'اتصال به پروکسی خروجی',
+    'scan.colCountry': 'کشور', 'scan.colAddr': 'آدرس / پورت', 'scan.colType': 'نوع / پروتکل',
+    'scan.colPing': 'پینگ', 'scan.colStatus': 'وضعیت', 'scan.colAction': 'عملیات',
+    'scan.online': 'آنلاین', 'scan.unverified': 'پیشنهادی', 'scan.ipStatic': 'آی‌پی ثابت',
+    'scan.proxy': 'پروکسی', 'scan.domain': 'دامنه', 'scan.idle': 'برای شروع، دریافت و تست را بزنید.',
+    'scan.testing': 'در حال تست...', 'scan.none': 'موردی یافت نشد.',
+    'toast.copied': 'در حافظه کپی شد', 'toast.linkCopied': 'لینک کپی شد',
+    'toast.masterCopied': 'ساب‌لینک اصلی کپی شد', 'toast.saveOk': 'تنظیمات ذخیره شد',
+    'toast.saveErr': 'خطا در ذخیره تنظیمات', 'toast.network': 'خطای شبکه',
+    'toast.testingNodes': 'در حال تست اتصال نودها...', 'toast.rotateConfirm': 'مسیر مدیریت عوض شود؟ مسیر قبلی دیگر کار نمی‌کند.'
+  },
+  en: {
+    'nav.dashboard': 'Dashboard', 'nav.users': 'Users', 'nav.settings': 'Settings',
+    'nav.scanner': 'Scanner', 'nav.locations': 'Locations',
+    'top.support': 'Support', 'top.multi': 'Locations', 'top.theme': 'Light mode', 'top.lang': 'فارسی',
+    'panel.dashboard': 'Dashboard', 'panel.dashboardSub': 'Live system status and usage',
+    'panel.users': 'Users', 'panel.usersSub': 'Subscriptions and limits',
+    'panel.settings': 'Settings', 'panel.settingsSub': 'Proxy core, network and panel',
+    'panel.scanner': 'Live scanner', 'panel.scannerSub': 'Live proxies and static IPs (IPv4/IPv6) by country',
+    'panel.locations': 'Locations', 'panel.locationsSub': 'Country-specific subscriptions',
+    'btn.reload': 'Refresh', 'btn.createUser': 'Create user', 'btn.newUser': 'New user',
+    'btn.save': 'Save settings', 'btn.reset': 'Reset defaults', 'btn.copyMaster': 'Copy master subscription',
+    'btn.scan': 'Fetch & test', 'btn.password': 'Change admin password',
+    'metric.users': 'Active users', 'metric.traffic': 'Traffic used',
+    'metric.ips': 'Healthy IPs', 'metric.protocols': 'Active protocols',
+    'settings.protocols': 'Protocols & features', 'settings.network': 'Network & transport', 'settings.panel': 'Panel & security',
+    'scanner.country': 'Country', 'scanner.kind': 'Type', 'scanner.family': 'IP family',
+    'scanner.count': 'Count',    'scanner.addCfIps': 'Add Cloudflare default IPs to manual addresses',
+    'scanner.addCfDomains': 'Add Cloudflare default domains to manual addresses',
+    'btn.editUser': 'Edit', 'card.nodesAuto': 'Nodes: automatic',
+    'modal.create': 'Create new user', 'modal.username': 'Username', 'modal.preset': 'Preset',
+    'modal.limit': 'Data limit (GB) — 0 for unlimited', 'modal.days': 'Validity (days) — 0 for never',
+    'modal.nodes': 'Nodes in subscription', 'modal.createBtn': 'Create user', 'modal.cancel': 'Cancel',
+    'modal.advanced': 'Unique settings for this user',
+    'modal.password': 'Change admin password', 'modal.old': 'Current password', 'modal.new': 'New password',
+    'modal.confirmNew': 'Confirm new password', 'modal.savePassword': 'Save password',
+    'field.echDomain': 'ECH domain', 'field.dns': 'Custom DNS (DoH)', 'field.fragPreset': 'Fragment preset',
+    'field.ports': 'Node ports', 'field.fp': 'TLS fingerprint', 'field.patt': 'Path pattern',
+    'field.rotation': 'IP rotation', 'field.proxyIP': 'Custom proxy address', 'field.locCount': 'Location node count',
+    'field.outProxy': 'Outbound proxy', 'field.dnsHint': 'Pick a DNS from the list or type a custom DoH value.',
+    'field.adminPath': 'Random admin path', 'field.customPath': 'Custom panel path',
+    'field.homepage': 'Camouflage page', 'field.yx': 'Manual addresses', 'field.nodeCount': 'Nodes per user',
+    'warn.title': 'Settings conflict warning:',
+    'card.usage': 'Usage', 'card.expiry': 'Expiry', 'card.unlimited': 'Unlimited',
+    'card.noExpiry': 'No expiry', 'card.nodes': 'nodes', 'card.active': 'Active',
+    'card.inactive': 'Disabled', 'card.preset': 'Preset', 'card.subscription': 'Active subscription',
+    'btn.copySub': 'Sub', 'btn.status': 'Status', 'btn.resetUser': 'Reset', 'btn.testNodes': 'Test',
+    'btn.domainSub': 'Domains',
+    'btn.rotatePath': 'New path', 'btn.addToYx': 'Add to manual addresses', 'btn.connectS': 'Connect to egress proxy',
+    'scan.colCountry': 'Country', 'scan.colAddr': 'Address / port', 'scan.colType': 'Type / protocol',
+    'scan.colPing': 'Ping', 'scan.colStatus': 'Status', 'scan.colAction': 'Action',
+    'scan.online': 'Online', 'scan.unverified': 'Suggested', 'scan.ipStatic': 'Static IP',
+    'scan.proxy': 'Proxy', 'scan.domain': 'Domain', 'scan.idle': 'Press fetch & test to start.',
+    'scan.testing': 'Testing...', 'scan.none': 'Nothing found.',
+    'toast.copied': 'Copied', 'toast.linkCopied': 'Link copied',
+    'toast.masterCopied': 'Master subscription copied', 'toast.saveOk': 'Settings saved',
+    'toast.saveErr': 'Failed to save settings', 'toast.network': 'Network error',
+    'toast.testingNodes': 'Testing node connectivity...', 'toast.rotateConfirm': 'Rotate the admin path? The old path will stop working.'
+  }
+};
+
+function countryOptions() {
+  return Object.entries(COUNTRY_PROXY_SOURCES)
+    .map(([code, c]) => `<option value="${code}">${c.name} — ${code}</option>`)
+    .join('');
+}
+
+export function renderAdminDashboardHtml(initialData = {}) {
+  const config = initialData.config || CONFIG_DEFAULTS;
+  const safeInitialJson = JSON.stringify({
+    brand: BRAND_NAME,
+    version: VERSION,
+    defaults: CONFIG_DEFAULTS,
+    presets: USER_PRESETS,
+    config,
+    users: initialData.users || [],
+    diagnostics: initialData.diagnostics || {},
+    adminPath: initialData.adminPath || '',
+    // فقط نام کشورها به کلاینت می‌رود (آدرس منابع داخلی لازم نیست در صفحه باشد)
+    countrySources: Object.keys(COUNTRY_PROXY_SOURCES).reduce(function(acc, code) {
+      var item = COUNTRY_PROXY_SOURCES[code] || {};
+      acc[code] = { name: item.name || code, flag: item.flag || '' };
+      return acc;
+    }, {}),
+    vipCountries: EDGE_VIP_COUNTRIES,
+    // استخر آی‌پی اختصاصی؛ برای انتخاب تصادفی در پنجرهٔ تنظیمات کاربر و ساخت ساب /ips
+    ipPool: IP_POOL,
+    ipPoolCountries: IP_POOL_COUNTRIES,
+    ipPoolCountryNames: IP_POOL_COUNTRY_NAMES,
+    ipPoolPath: '/ips',
+    maxUsersLimit: MAX_USERS_LIMIT,
+    telegramSupport: TELEGRAM_SUPPORT,
+    dnsPresets: DNS_PRESETS,
+    portChoices: CF_PORT_CHOICES,
+    echDomains: ECH_DOMAINS,
+    fragmentPresets: FRAGMENT_PRESETS,
+    pathPatterns: PATH_PATTERNS,
+    fingerprints: FINGERPRINT_PRESETS,
+    officialIps: initialData.officialIps || [],
+    officialIpv6: initialData.officialIpv6 || [],
+    directDomains: initialData.directDomains || [],
+    i18n: PANEL_I18N
+  }).replace(/</g, '\\u003c');
+
+  const clientIcons = JSON.stringify({
+    copy: icon('copy'),
+    trash: icon('trash'),
+    refresh: icon('refresh'),
+    plus: icon('plus'),
+    link: icon('link'),
+    external: icon('external'),
+    bolt: icon('bolt'),
+    globe: icon('globe'),
+    radar: icon('radar'),
+    gauge: icon('gauge'),
+    check: icon('check'),
+    clock: icon('clock'),
+    power: icon('power'),
+    layers: icon('layers'),
+    download: icon('download'),
+    zip: icon('zip'),
+    server: icon('server'),
+    terminal: icon('terminal'),
+    signal: icon('signal'),
+    settings: icon('settings'),
+    edit: icon('settings'),
+    sanctions: icon('sanctions'),
+    warp: icon('warp'),
+    dns: icon('dns'),
+    pin: icon('pin'),
+    api: icon('api'),
+    pulse: icon('pulse'),
+    telegram: icon('telegram'),
+    back: icon('back'),
+    stop: icon('stop'),
+    sun: icon('sun'),
+    moon: icon('moon')
+  });
+
+  const ssmethods = ['none'];
+  const ipRotationOptions = [
+    ['off', 'غیرفعال'],
+    ['5m', 'هر ۵ دقیقه'],
+    ['15m', 'هر ۱۵ دقیقه'],
+    ['30m', 'هر ۳۰ دقیقه'],
+    ['1h', 'هر ۱ ساعت'],
+    ['24h', 'هر ۲۴ ساعت']
+  ];
+
+  const presetOptions = Object.entries(USER_PRESETS)
+    .map(([id, p]) => `<option value="${id}">${p.title || id}</option>`)
+    .join('');
+
+  return (`<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${BRAND_UPPER} ${VERSION} — مرکز کنترل</title>
+<link rel="icon" href="${FAVICON_DATA_URI}">
+${PWA_HEAD_TAGS}
+<script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.3.2/css/flag-icons.min.css">
+<script>
+// ——— عیب‌یابی: هر خطای اجرایی را روی صفحه نشان بده (نه سکوت) ———
+(function() {
+  var shown = false;
+  function banner(title, detail) {
+    if (shown) return; shown = true;
+    try {
+      var box = document.createElement('div');
+      box.setAttribute('dir', 'rtl');
+      box.style.cssText = 'position:fixed;z-index:99999;left:0;right:0;top:0;padding:10px 14px;background:#3a0d0d;color:#ffd9d9;font:12px/1.8 system-ui,Tahoma,sans-serif;border-bottom:1px solid #a33;text-align:right';
+      box.textContent = title + (detail ? ' | ' + detail : '');
+      (document.body || document.documentElement).appendChild(box);
+      window.__miliBootError = box.textContent;
+    } catch (e) {}
+  }
+  window.__miliDiag = { ready: false, banner: banner };
+  window.addEventListener('error', function(e) {
+    banner('خطای اجرای پنل: ' + ((e && e.message) || 'نامشخص'), ((e && e.filename) || '') + ':' + ((e && e.lineno) || ''));
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    var r = e && e.reason;
+    banner('خطای غیرمنتظره: ' + ((r && r.message) || String(r || '')), '');
+  });
+  setTimeout(function() {
+    if (!window.__miliDiag.ready && !shown) {
+      banner('اسکریپت پنل اجرا نشد؛ صفحه را با Ctrl+F5 (پاک‌کردن کش) باز کنید.', 'در صورت تکرار این پیام را بفرستید.');
+    }
+  }, 4000);
+})();
+</script>
+<style>
+  :root {
+    --bg: #05080a;
+    --bg-soft: #070c0e;
+    --panel: rgba(9, 15, 13, 0.92);
+    --panel-2: rgba(12, 20, 16, 0.9);
+    --line: rgba(181, 255, 77, 0.13);
+    --line-strong: rgba(181, 255, 77, 0.34);
+    --neon: #b5ff4d;
+    --neon-soft: rgba(181, 255, 77, 0.1);
+    --neon-glow: rgba(181, 255, 77, 0.28);
+    --text: #e9f3e2;
+    --muted: #85957f;
+    --muted-2: #5d6b59;
+    --danger: #ff6262;
+    --warn: #ffce5c;
+    --info: #63e6d4;
+    --radius: 18px;
+    --shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    --font: "Vazirmatn", "Segoe UI", Tahoma, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 48px;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background:
+      radial-gradient(900px 480px at 82% -8%, rgba(181, 255, 77, 0.11), transparent 65%),
+      radial-gradient(700px 420px at 8% 4%, rgba(99, 230, 212, 0.06), transparent 60%),
+      linear-gradient(180deg, #060a0b 0%, #040607 100%);
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      linear-gradient(rgba(181, 255, 77, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(181, 255, 77, 0.035) 1px, transparent 1px);
+    background-size: 46px 46px;
+    mask-image: radial-gradient(circle at 50% 0%, #000 0%, transparent 78%);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  /* ---------- light theme (پنل، نه فقط صفحه ورود) ---------- */
+  body.light-mode {
+    --bg: #eef3f0;
+    --bg-soft: #f7faf8;
+    --panel: rgba(255, 255, 255, 0.94);
+    --panel-2: rgba(248, 252, 249, 0.94);
+    --line: rgba(6, 118, 71, 0.16);
+    --line-strong: rgba(6, 118, 71, 0.38);
+    --neon: #0b8a4b;
+    --neon-soft: rgba(11, 138, 75, 0.1);
+    --neon-glow: rgba(11, 138, 75, 0.22);
+    --text: #0c1a12;
+    --muted: #5a6d60;
+    --muted-2: #7a8b7f;
+    --shadow: 0 20px 50px rgba(15, 40, 25, 0.12);
+  }
+  body.light-mode::before {
+    background:
+      radial-gradient(900px 480px at 82% -8%, rgba(11, 138, 75, 0.1), transparent 65%),
+      radial-gradient(700px 420px at 8% 4%, rgba(2, 132, 199, 0.08), transparent 60%),
+      linear-gradient(180deg, #f7faf8 0%, #eaf0ec 100%);
+  }
+  body.light-mode::after {
+    background-image:
+      linear-gradient(rgba(11, 138, 75, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(11, 138, 75, 0.05) 1px, transparent 1px);
+    opacity: 0.7;
+  }
+  body.light-mode .topbar { background: rgba(250, 253, 251, 0.9); }
+  body.light-mode .window { background: linear-gradient(180deg, #ffffff, #f6faf7); }
+  body.light-mode .metric,
+  body.light-mode .card,
+  body.light-mode .user-card,
+  body.light-mode .loc-card { background: #ffffff; }
+
+  body.light-mode .modal-card { background: #ffffff; }
+  body.light-mode .toast-body { background: #ffffff; color: #0c1a12; }
+  body.light-mode .field input,
+  body.light-mode .field select,
+  body.light-mode .field textarea { background: #ffffff; color: #0c1a12; border-color: var(--line); }
+  body.light-mode .btn { background: #ffffff; color: #0c1a12; }
+  body.light-mode .btn.primary { color: #06130b; }
+  body.light-mode table.scan th { background: rgba(11, 138, 75, 0.06); }
+  body.light-mode .icon-btn { background: #ffffff; color: #0c1a12; }
+  body.light-mode .chip { background: #ffffff; }
+  body.light-mode .scan-status { color: #5a6d60; }
+
+  body.light-mode .switch i { background: #cfdcd4; }
+
+  .mi { width: 20px; height: 20px; display: inline-block; vertical-align: middle; flex: none; }
+  .mi-sm { width: 16px; height: 16px; }
+  .mi-lg { width: 26px; height: 26px; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 22px;
+    background: rgba(5, 8, 10, 0.82);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand .mili-shield-svg { width: 38px; height: 38px; flex: none; }
+  .brand-text { line-height: 1.15; }
+  .brand-name { font-size: 1.02rem; font-weight: 800; letter-spacing: 0.4px; }
+  .brand-name span { color: var(--neon); }
+  .brand-ver {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.6px;
+  }
+  .topbar-spacer { flex: 1; }
+  /* هدر فقط لوگو + آیکون‌های افقی بدون متن فارسی */
+  .topbar-actions { display: flex; align-items: center; gap: 7px; }
+  .topbar-actions .icon-btn { width: 38px; height: 38px; padding: 0; border-radius: 11px; }
+  .topbar-actions .icon-btn .mi { width: 19px; height: 19px; }
+  .topbar-actions .icon-btn.tg { color: #7fd7ff; border-color: rgba(125, 211, 252, 0.3); background: rgba(56, 189, 248, 0.1); }
+  .topbar-actions .icon-btn.tg:hover { color: #b9edff; border-color: rgba(125, 211, 252, 0.5); background: rgba(56, 189, 248, 0.18); }
+  .topbar-actions .icon-btn.danger { color: var(--danger); }
+  /* دکمهٔ نصب: وقتی مرورگر نصب را پیشنهاد می‌دهد درخشان می‌شود */
+  .topbar-actions .icon-btn.install.is-ready {
+    color: var(--neon);
+    border-color: rgba(181, 255, 77, 0.45);
+    background: var(--neon-soft);
+    box-shadow: 0 0 18px -10px var(--neon);
+    animation: mili-float 3.8s ease-in-out infinite;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.025);
+    font-size: 0.76rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .chip b { color: var(--text); font-weight: 700; }
+  .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--neon); box-shadow: 0 0 10px var(--neon-glow); }
+  .chip.warn .dot { background: var(--warn); box-shadow: 0 0 10px rgba(255, 206, 92, 0.4); }
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 8px 12px;
+    border-radius: 11px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: 0.16s;
+  }
+  .icon-btn:hover { border-color: var(--line-strong); background: var(--neon-soft); color: var(--neon); }
+  .icon-btn.danger:hover { border-color: rgba(255, 98, 98, 0.5); background: rgba(255, 98, 98, 0.1); color: var(--danger); }
+
+  /* ---------- main ---------- */
+  .main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 10px; }
+
+  /* ---------- نوار تب‌ها (جدا از منو، به سبک نوار شناور قبلی) ---------- */
+  .tabbar {
+    position: sticky;
+    top: 61px;
+    z-index: 35;
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 12px;
+    margin-bottom: 12px;
+    background: linear-gradient(180deg, rgba(5, 8, 10, 0.96), rgba(5, 8, 10, 0.7));
+    backdrop-filter: blur(14px);
+  }
+  .tabbar-pill {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    width: min(100%, 560px);
+    padding: 7px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: rgba(6, 10, 9, 0.9);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.4) inset;
+    scrollbar-width: none;
+  }
+  .tabbar-pill::-webkit-scrollbar { display: none; }
+  /* همهٔ تب‌ها یک بافت و یک اندازه دارند؛ فقط رنگ و حاشیه وضعیت فعال را نشان می‌دهد */
+  .tab {
+    appearance: none;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    min-width: 0;
+    height: 58px;
+    padding: 7px 6px;
+    border-radius: 14px;
+    font-family: inherit;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: 0.18s;
+    position: relative;
+    overflow: hidden;
+  }
+  .tab .mi { width: 20px; height: 20px; }
+  .tab > span[data-i18n] { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .tab:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); border-color: var(--line); }
+  .tab.is-active {
+    color: var(--neon);
+    background: var(--neon-soft);
+    border-color: var(--line-strong);
+    box-shadow: inset 0 0 0 1px rgba(181, 255, 77, 0.1);
+  }
+  .tab.is-active::after {
+    content: "";
+    position: absolute;
+    bottom: 5px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--neon);
+    box-shadow: 0 0 8px var(--neon-glow);
+  }
+  .tab::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.16) 50%, transparent 70%);
+    transform: translateX(-130%);
+    opacity: 0;
+  }
+  .tab:hover::before { animation: mili-sheen 0.85s ease; }
+  body.light-mode .tabbar { background: linear-gradient(180deg, rgba(238, 243, 240, 0.96), rgba(238, 243, 240, 0.7)); }
+  body.light-mode .tabbar-pill { background: rgba(255, 255, 255, 0.95); }
+  body.light-mode .tab { color: #4b5c50; }
+  .panel { display: none; animation: rise 0.32s ease both; }
+  .panel.is-active { display: block; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  .window {
+    min-width: 0;
+    max-width: 100%;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(12, 19, 16, 0.96), rgba(6, 10, 9, 0.94));
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .window-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(90deg, rgba(181, 255, 77, 0.06), transparent 55%);
+  }
+  .dots { display: inline-flex; gap: 6px; margin-inline-start: 2px; }
+  .dots i { width: 8px; height: 8px; border-radius: 50%; display: block; background: #2b3a2c; }
+  .dots i:nth-child(1) { background: #ff6b6b; }
+  .dots i:nth-child(2) { background: #ffce5c; }
+  .dots i:nth-child(3) { background: #b5ff4d; }
+  .window-title { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 0.95rem; }
+  .window-title .mi { color: var(--neon); }
+  .window-sub { color: var(--muted); font-size: 0.74rem; margin-inline-start: 4px; font-weight: 500; }
+  .window-head .spacer { flex: 1; }
+  .window-body { padding: 18px; min-width: 0; }
+
+  /* ---------- metrics ---------- */
+  /* داشبورد: کارت‌های مربعی دوتایی کنار هم */
+  .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (min-width: 900px) { .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .metric {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 6px;
+    aspect-ratio: 1 / 1;
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 13px;
+    background:
+      radial-gradient(140px 90px at 100% 0%, rgba(181, 255, 77, 0.09), transparent 70%),
+      rgba(255, 255, 255, 0.018);
+    overflow: hidden;
+  }
+  .metric::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    top: 16px;
+    bottom: 16px;
+    width: 2px;
+    background: linear-gradient(180deg, var(--neon), transparent);
+    opacity: 0.6;
+  }
+  .metric-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .metric-label { color: var(--muted); font-size: 0.78rem; }
+  .metric-icon { color: var(--neon); opacity: 0.9; }
+  .metric-value { font-size: clamp(1.15rem, 5.2vw, 1.62rem); font-weight: 800; margin: 0; letter-spacing: 0.5px; line-height: 1.15; }
+  .metric-value small { font-size: 0.74rem; color: var(--muted); font-weight: 600; margin-inline-start: 4px; }
+  .metric-foot { font-size: 0.66rem; line-height: 1.55; color: var(--muted-2); }
+
+  .split { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; margin-top: 16px; }
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.016);
+    padding: 16px;
+  }
+  .card h3 { margin: 0 0 12px; font-size: 0.86rem; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .card h3 .mi { color: var(--neon); width: 17px; height: 17px; }
+  .kv { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px dashed rgba(181, 255, 77, 0.09); font-size: 0.8rem; }
+  .kv:last-child { border-bottom: 0; }
+  .kv span { color: var(--muted); }
+  .kv b { font-weight: 700; font-family: var(--mono); font-size: 0.78rem; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.2px;
+    padding: 3px 8px; border-radius: 7px;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .tag.on { color: var(--neon); border-color: var(--line-strong); background: var(--neon-soft); }
+  .tag.off { opacity: 0.55; }
+  .tag.mono { font-family: var(--mono); }
+  .tag .mi { width: 13px; height: 13px; }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 10px 15px; border-radius: 11px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.025);
+    color: var(--text);
+    font-family: inherit; font-size: 0.8rem; font-weight: 700;
+    cursor: pointer; transition: 0.16s;
+  }
+  .btn .mi { width: 16px; height: 16px; }
+  .btn:hover { border-color: var(--line-strong); background: var(--neon-soft); }
+  .btn.primary {
+    background: linear-gradient(180deg, rgba(181, 255, 77, 0.95), rgba(139, 209, 42, 0.95));
+    color: #0a1206; border-color: transparent;
+    box-shadow: 0 8px 22px rgba(181, 255, 77, 0.18);
+  }
+  .btn.primary:hover { filter: brightness(1.06); background: linear-gradient(180deg, #c7ff72, #98dd33); }
+  .btn.ghost { background: transparent; }
+  .btn.danger { color: var(--danger); border-color: rgba(255, 98, 98, 0.28); }
+  .btn.danger:hover { background: rgba(255, 98, 98, 0.1); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.sm { padding: 7px 10px; font-size: 0.72rem; border-radius: 9px; }
+  .btn.sm .mi { width: 14px; height: 14px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+  .toolbar .spacer { flex: 1; }
+
+  /* ---------- users ---------- */
+  .user-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 14px; }
+  .user-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    padding: 15px;
+    background: linear-gradient(180deg, rgba(181, 255, 77, 0.035), rgba(255, 255, 255, 0.012));
+  }
+  .user-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .user-name { font-weight: 800; font-size: 0.94rem; }
+  .user-uuid { font-family: var(--mono); font-size: 0.66rem; color: var(--muted-2); direction: ltr; text-align: left; margin-top: 3px; overflow-wrap: anywhere; }
+  .pill { font-size: 0.68rem; font-weight: 700; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--line); }
+  .pill.on { color: var(--neon); border-color: var(--line-strong); background: var(--neon-soft); }
+  .pill.off { color: var(--danger); border-color: rgba(255, 98, 98, 0.3); background: rgba(255, 98, 98, 0.08); }
+  .usage { display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+  .bar { height: 6px; border-radius: 99px; background: rgba(255, 255, 255, 0.07); overflow: hidden; margin: 7px 0 2px; }
+  .bar > i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #86c62c, #b5ff4d); }
+  .user-tags { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0; }
+  .user-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+  .user-actions .btn { min-width: 0; justify-content: center; }
+  .user-more { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 8px; }
+  .user-more > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 10px;
+    margin-top: 2px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    transition: 0.16s;
+  }
+  .user-more > summary::-webkit-details-marker { display: none; }
+  .user-more > summary::after { content: "+"; font-size: 0.9rem; color: var(--neon); line-height: 1; }
+  .user-more[open] > summary::after { content: "−"; }
+  .user-more > summary:hover { color: var(--text); border-color: var(--line-strong); background: var(--neon-soft); }
+  .user-more > .user-actions { margin-top: 8px; }
+  .empty { text-align: center; color: var(--muted); padding: 34px 12px; font-size: 0.84rem; }
+
+  /* ---------- forms ---------- */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 0.76rem; color: var(--muted); }
+  .field input[type="text"], .field input[type="number"], .field input[type="password"], .field select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: rgba(0, 0, 0, 0.35);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.82rem;
+    outline: none;
+    transition: 0.15s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--line-strong); box-shadow: 0 0 0 3px rgba(181, 255, 77, 0.08); }
+  .field .hint { font-size: 0.68rem; color: var(--muted-2); }
+  .switch-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 11px;
+    background: rgba(255, 255, 255, 0.015);
+  }
+  .switch-row .switch-meta { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .switch-row .switch-meta .mi { color: var(--neon); width: 17px; height: 17px; }
+  .switch-row .switch-meta b { font-size: 0.78rem; font-weight: 700; display: block; }
+  .switch-row .switch-meta span { font-size: 0.68rem; color: var(--muted-2); display: block; }
+  .switch { position: relative; width: 42px; height: 24px; flex: none; }
+  .switch input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .switch i {
+    position: absolute; inset: 0; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--line);
+    transition: 0.18s;
+  }
+  .switch i::after {
+    content: ""; position: absolute; top: 3px; inset-inline-start: 3px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #6b7a67; transition: 0.18s;
+  }
+  .switch input:checked + i { background: rgba(181, 255, 77, 0.26); border-color: var(--line-strong); }
+  .switch input:checked + i::after { background: var(--neon); inset-inline-start: 21px; box-shadow: 0 0 10px var(--neon-glow); }
+  .group-title { font-size: 0.8rem; font-weight: 800; color: var(--text); margin: 4px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .group-title .mi { color: var(--neon); width: 17px; height: 17px; }
+
+  /* ---------- scanner ---------- */
+  .scan-controls { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr)); gap: 10px; align-items: end; }
+  .scan-controls .btn { min-height: 40px; justify-content: center; }
+  .table-wrap { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; }
+  table.scan { width: 100%; border-collapse: collapse; font-size: 0.78rem; min-width: 620px; }
+  table.scan th {
+    text-align: right; padding: 10px 12px; color: var(--muted);
+    font-weight: 600; font-size: 0.72rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--line);
+  }
+  table.scan td { padding: 10px 12px; border-bottom: 1px solid rgba(181, 255, 77, 0.07); }
+  table.scan tr:last-child td { border-bottom: 0; }
+  table.scan tr:hover td { background: rgba(181, 255, 77, 0.03); }
+  .mono { font-family: var(--mono); direction: ltr; text-align: left; }
+  .lat-fast { color: var(--neon); }
+  .lat-med { color: var(--warn); }
+  .lat-slow { color: var(--danger); }
+  .scan-status { font-size: 0.78rem; color: var(--muted); margin-top: 10px; min-height: 18px; }
+  .scan-status.err { color: var(--danger); }
+  .warn-box {
+    margin-top: 14px; padding: 11px 13px; border-radius: 11px;
+    border: 1px solid rgba(255, 206, 92, 0.45);
+    background: rgba(255, 206, 92, 0.08);
+    color: var(--warn); font-size: 0.78rem; line-height: 1.95;
+  }
+  .warn-box b { display: block; margin-bottom: 4px; }
+  .warn-box ul { margin: 0; padding-inline-start: 18px; }
+  .code-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 34px; padding: 3px 6px; border-radius: 7px;
+    border: 1px solid var(--line-strong);
+    background: var(--neon-soft);
+    color: var(--neon); font-family: var(--mono); font-size: 0.68rem; font-weight: 700;
+  }
+
+  /* ---------- locations ---------- */
+  .loc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(245px, 100%), 1fr)); gap: 12px; }
+  .loc-card {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px;
+    background: rgba(255, 255, 255, 0.015);
+  }
+  .loc-name { font-size: 0.8rem; font-weight: 700; }
+  .loc-meta { font-size: 0.68rem; color: var(--muted-2); margin-top: 2px; }
+  /* همان حرکت منوی کشویی روی کارت‌های لوکیشن: موج لمس، بالا آمدن و ورود پله‌ای */
+  .loc-grid .loc-card { animation: rise .4s cubic-bezier(.22, .8, .3, 1) both; }
+  .loc-grid .loc-card:nth-child(1) { animation-delay: 0s; }
+  .loc-grid .loc-card:nth-child(2) { animation-delay: .04s; }
+  .loc-grid .loc-card:nth-child(3) { animation-delay: .08s; }
+  .loc-grid .loc-card:nth-child(4) { animation-delay: .12s; }
+  .loc-grid .loc-card:nth-child(5) { animation-delay: .16s; }
+  .loc-grid .loc-card:nth-child(6) { animation-delay: .2s; }
+  .loc-grid .loc-card:nth-child(7) { animation-delay: .24s; }
+  .loc-grid .loc-card:nth-child(n+8) { animation-delay: .28s; }
+  /* دکمههای لوکیشن فقط آیکون، بدون کادر و بدون متن، همه در یک ردیف */
+  .loc-acts { display: flex; align-items: center; gap: 4px; flex: none; }
+  .loc-act {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 13px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .2s ease, transform .2s ease;
+  }
+  .loc-act .mi { width: 26px; height: 26px; }
+  .loc-act:hover { background: rgba(255, 255, 255, 0.05); transform: translateY(-2px); }
+  body.light-mode .loc-act:hover { background: rgba(12, 26, 18, 0.06); }
+  .loc-act.c-copy .mi { color: #a6e86b; }
+  .loc-act.c-proxy .mi { color: #62c8f7; }
+  .loc-act.c-ip .mi { color: #b79cff; }
+  body.light-mode .loc-act.c-copy .mi { color: #2f8f2f; }
+  body.light-mode .loc-act.c-proxy .mi { color: #1789c2; }
+  body.light-mode .loc-act.c-ip .mi { color: #6b4fd6; }
+  .loc-card.is-press { transform: translateY(0) scale(.992); }
+  .loc-card.is-press .mi { animation: mili-tap .44s cubic-bezier(.2, .8, .3, 1); }
+  .loc-card .btn .mi { transition: transform .2s ease; }
+  .loc-card [data-act="copy"] .mi { color: #a6e86b; }
+  .loc-card [data-act="country-proxy"] .mi { color: #62c8f7; }
+  .loc-card [data-act="country-ip"] .mi { color: #b79cff; }
+  body.light-mode .loc-card [data-act="copy"] .mi { color: #2f8f2f; }
+  body.light-mode .loc-card [data-act="country-proxy"] .mi { color: #1789c2; }
+  body.light-mode .loc-card [data-act="country-ip"] .mi { color: #6b4fd6; }
+  /* اندپوینت اختصاصی WARP: آدرس طولانی نمایش داده نمی‌شود؛ فقط دکمه‌های کپی */
+  .ep-card { grid-column: 1 / -1; flex-direction: column; align-items: stretch; gap: 10px; }
+  .ep-card .toolbar { margin-top: 2px; }
+
+
+  /* ---------- modal / toast ---------- */
+  .modal { position: fixed; inset: 0; z-index: 90; display: none; align-items: center; justify-content: center; padding: 18px; background: rgba(2, 5, 4, 0.72); backdrop-filter: blur(6px); }
+  .modal.is-open { display: flex; }
+  .modal-card { width: min(460px, 100%); border-radius: var(--radius); border: 1px solid var(--line-strong); background: #070d0b; box-shadow: var(--shadow); overflow: hidden; }
+  .modal-card.wide { width: min(860px, 100%); }
+  .user-form-modal { display: flex; flex-direction: column; max-height: min(90vh, 880px); }
+  .user-form-modal .modal-body { flex: 1 1 auto; min-height: 0; max-height: none; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .modal-head b { font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
+  .modal-head .mi { color: var(--neon); }
+  .modal-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 74vh; overflow-y: auto; }
+  .form-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 11px 14px; background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid var(--line); scrollbar-width: none; scroll-snap-type: x proximity; }
+  .form-tabs::-webkit-scrollbar { height: 0; }
+  .ftab { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: transparent; color: inherit; opacity: 0.7; border-radius: 999px; padding: 7px 13px; font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: 0.18s ease; scroll-snap-align: center; }
+  .ftab:hover { opacity: 1; border-color: var(--line-strong); }
+  .ftab .ftab-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.5; }
+  .ftab.is-active { opacity: 1; color: var(--neon); border-color: rgba(181, 255, 77, 0.45); background: rgba(181, 255, 77, 0.1); }
+  .ftab.is-active .ftab-dot { opacity: 1; box-shadow: 0 0 8px var(--neon); }
+  body.light-mode .form-tabs { background: #f6faf8; }
+  .uf-pane { display: none; }
+  .uf-pane.is-active { display: block; animation: rise 0.22s ease both; }
+  .uf-section { display: flex; align-items: center; gap: 10px; margin: 18px 0 10px; }
+  .uf-section:first-child { margin-top: 0; }
+  .uf-section span { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.02em; color: var(--neon); opacity: 0.85; white-space: nowrap; }
+  .uf-section i { flex: 1; height: 1px; background: var(--line); }
+  .uf-pane .field textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.35); color: var(--text); font-family: inherit; font-size: 0.82rem; line-height: 2; outline: none; resize: vertical; transition: 0.15s; }
+  .uf-pane .field textarea:focus { border-color: var(--line-strong); box-shadow: 0 0 0 3px rgba(181, 255, 77, 0.08); }
+  body.light-mode .uf-pane .field textarea { background: #ffffff; color: #0c1a12; }
+  .field-hint { display: block; margin-top: 4px; font-size: 0.72rem; line-height: 1.7; opacity: 0.6; }
+  .ip-pool { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; padding: 8px 9px; border: 1px dashed rgba(99, 230, 212, 0.3); border-radius: 10px; background: rgba(99, 230, 212, 0.045); }
+  .ip-pool-title { font-size: 0.72rem; opacity: 0.75; }
+  .ip-pool-count { width: 62px; padding: 6px 8px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(0, 0, 0, 0.25); color: var(--text); font: inherit; font-size: 0.74rem; }
+  .ip-pool-country { flex: 1 1 130px; min-width: 110px; padding: 6px 8px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(0, 0, 0, 0.25); color: var(--text); font: inherit; font-size: 0.74rem; }
+  .ip-pool .btn { flex: none; }
+  .ip-pool-meta { font-size: 0.68rem; opacity: 0.5; flex-basis: 100%; }
+  .field-hint code { font-size: 0.7rem; padding: 1px 5px; border-radius: 5px; background: rgba(181, 255, 77, 0.1); color: var(--neon); direction: ltr; display: inline-block; }
+  .adv-box { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: rgba(255, 255, 255, 0.015); }
+  .adv-box summary { cursor: pointer; font-size: 0.8rem; font-weight: 700; color: var(--neon); }
+  body.light-mode .adv-box { background: #f8faf9; }
+  .modal-foot { padding: 0 16px 16px; display: flex; gap: 8px; justify-content: flex-start; flex-wrap: wrap; }
+  .user-form-modal .modal-foot { padding: 12px 16px; border-top: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); }
+
+  /* ---------- بازنشانی تنظیمات (دکمهٔ قرمز هدر) ---------- */
+  .topbar-actions .icon-btn.reset-all {
+    color: #ff8080;
+    border-color: rgba(255, 98, 98, 0.38);
+    background: rgba(255, 98, 98, 0.09);
+  }
+  .topbar-actions .icon-btn.reset-all:hover {
+    color: #fff;
+    border-color: rgba(255, 98, 98, 0.75);
+    background: rgba(255, 98, 98, 0.26);
+    box-shadow: 0 10px 26px rgba(255, 98, 98, 0.3);
+  }
+  .topbar-actions .icon-btn.help-btn {
+    color: var(--info);
+    border-color: rgba(99, 230, 212, 0.36);
+    background: rgba(99, 230, 212, 0.09);
+  }
+  .topbar-actions .icon-btn.help-btn:hover {
+    color: #eafffb;
+    border-color: rgba(99, 230, 212, 0.7);
+    background: rgba(99, 230, 212, 0.22);
+    box-shadow: 0 10px 26px rgba(99, 230, 212, 0.26);
+  }
+  .reset-list { margin: 0; padding-inline-start: 18px; color: var(--muted); line-height: 2; font-size: 0.82rem; }
+  .reset-list b { color: var(--text); }
+
+  /* ---------- راهنمای خوش‌آمدگویی: آبی فیروزه‌ای + سبز نئونی ---------- */
+  .modal.animated { opacity: 0; transition: opacity 0.28s ease; }
+  .modal.animated.is-open { opacity: 1; animation: help-fade 0.38s ease both; }
+  .modal.animated.is-open .modal-card { animation: help-rise 0.58s cubic-bezier(0.2, 0.85, 0.25, 1) both; }
+  @keyframes help-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes help-rise { from { opacity: 0; transform: translateY(30px) scale(0.955); } to { opacity: 1; transform: none; } }
+  @keyframes help-pane-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  .help-modal {
+    width: min(960px, 100%);
+    max-height: min(92vh, 920px);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(99, 230, 212, 0.36);
+    background:
+      radial-gradient(880px 380px at 10% -12%, rgba(99, 230, 212, 0.16), transparent 62%),
+      radial-gradient(720px 360px at 94% -4%, rgba(181, 255, 77, 0.14), transparent 60%),
+      #070d0b;
+    box-shadow: 0 36px 90px rgba(0, 0, 0, 0.72), inset 0 0 0 1px rgba(181, 255, 77, 0.07);
+  }
+  .help-modal .modal-head {
+    background: linear-gradient(90deg, rgba(99, 230, 212, 0.14), rgba(181, 255, 77, 0.1));
+    border-bottom-color: rgba(99, 230, 212, 0.26);
+  }
+  .help-modal .modal-head b { color: #d8fffb; }
+  .help-modal .modal-head b .mi { color: var(--info); }
+  .help-tabs {
+    display: flex;
+    gap: 7px;
+    padding: 12px 16px 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex: none;
+  }
+  .help-tabs::-webkit-scrollbar { display: none; }
+  .help-tab {
+    flex: none;
+    cursor: pointer;
+    border: 1px solid rgba(99, 230, 212, 0.26);
+    background: rgba(99, 230, 212, 0.06);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 7px 13px;
+    font: inherit;
+    font-size: 0.76rem;
+    transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .help-tab:hover { transform: translateY(-1px); color: #eafffb; background: rgba(99, 230, 212, 0.14); }
+  .help-tab.is-active {
+    color: #04120d;
+    border-color: transparent;
+    background: linear-gradient(120deg, #63e6d4, #b5ff4d);
+    box-shadow: 0 10px 26px rgba(99, 230, 212, 0.3);
+    font-weight: 700;
+  }
+  .help-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 14px 18px 10px;
+    display: block;
+  }
+  .help-pane { display: none; }
+  .help-pane.is-active { display: block; animation: help-pane-in 0.36s ease both; }
+  .help-lead { margin: 0 0 12px; color: var(--text); font-size: 0.86rem; line-height: 2; }
+  .help-lead b { color: var(--neon); }
+  .help-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .help-card {
+    border: 1px solid rgba(99, 230, 212, 0.2);
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: linear-gradient(180deg, rgba(99, 230, 212, 0.07), rgba(181, 255, 77, 0.03));
+  }
+  .help-card h4 {
+    margin: 0 0 7px;
+    font-size: 0.82rem;
+    color: #cffcf6;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .help-card h4 .mi { width: 17px; height: 17px; color: var(--info); }
+  .help-card ul, .help-card ol { margin: 0; padding-inline-start: 17px; color: var(--muted); font-size: 0.78rem; line-height: 1.95; }
+  .help-card li { margin-bottom: 3px; }
+  .help-card li::marker { color: #63e6d4; }
+  .help-card b, .help-card strong { color: #e9fff9; font-weight: 700; }
+  .help-kbd {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    direction: ltr;
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 6px;
+    color: var(--neon);
+    background: rgba(181, 255, 77, 0.1);
+    border: 1px solid rgba(181, 255, 77, 0.26);
+  }
+  .help-note {
+    margin-top: 10px;
+    border-inline-start: 3px solid var(--neon);
+    background: rgba(181, 255, 77, 0.07);
+    border-radius: 0 12px 12px 0;
+    padding: 9px 12px;
+    color: var(--muted);
+    font-size: 0.77rem;
+    line-height: 1.9;
+  }
+  .help-note b { color: var(--neon); }
+  .help-foot {
+    flex: none;
+    border-top: 1px solid rgba(99, 230, 212, 0.2);
+    background: rgba(99, 230, 212, 0.04);
+    padding: 11px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .help-foot .help-check {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--muted);
+    font-size: 0.74rem;
+    cursor: pointer;
+    margin-inline-start: auto;
+  }
+  .help-foot .help-check input { accent-color: #63e6d4; width: 15px; height: 15px; }
+  body.light-mode .help-modal { background: #ffffff; }
+  body.light-mode .help-modal .modal-head b { color: #083a33; }
+  body.light-mode .help-card { background: #f4fffd; border-color: rgba(11, 138, 75, 0.2); }
+  body.light-mode .help-card h4 { color: #0b5c4e; }
+  body.light-mode .help-card b, body.light-mode .help-card strong { color: #0c1a12; }
+  body.light-mode .help-lead b { color: #0b8a4b; }
+  body.light-mode .help-tab { color: #456; }
+  body.light-mode .help-kbd { color: #0b6b3a; background: rgba(11, 138, 75, 0.08); }
+  @media (max-width: 720px) {
+    .help-modal { max-height: 100%; }
+    .help-body { padding: 12px; }
+    .help-tab { padding: 6px 11px; font-size: 0.72rem; }
+  }
+  @media (max-width: 640px) {
+    .modal { padding: 0; }
+    .modal-card { border-radius: 0; border-inline: 0; }
+    .user-form-modal { width: 100%; height: 100%; max-height: none; }
+    .user-form-modal .modal-head { padding: 11px 13px; }
+    .user-form-modal .form-tabs { padding: 9px 12px; }
+    .user-form-modal .modal-body { padding: 14px 12px 6px; }
+    .user-form-modal .modal-foot { padding: 10px 12px calc(12px + env(safe-area-inset-bottom)); }
+    .user-form-modal .modal-foot .btn { flex: 1; justify-content: center; }
+    .user-form-modal .form-grid { grid-template-columns: 1fr; gap: 12px; }
+    .ftab { font-size: 0.75rem; padding: 7px 11px; }
+  }
+  .toast {
+    position: fixed; z-index: 120; inset-inline: 0; bottom: 96px;
+    display: flex; justify-content: center; pointer-events: none;
+  }
+  .toast-body {
+    transform: translateY(14px); opacity: 0;
+    transition: 0.25s; max-width: 90vw;
+    padding: 10px 16px; border-radius: 12px;
+    border: 1px solid var(--line-strong);
+    background: rgba(8, 14, 11, 0.96);
+    color: var(--text); font-size: 0.8rem; font-weight: 600;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+  }
+  .toast-body.show { transform: none; opacity: 1; }
+  .toast-body.err { border-color: rgba(255, 98, 98, 0.5); color: #ffb3b3; }
+  .toast-body.ok { color: var(--neon); }
+
+  @media (max-width: 820px) {
+    .main { padding: 16px 12px 6px; }
+    .topbar { padding: 10px 13px; gap: 9px; }
+    .brand-ver { font-size: 0.62rem; }
+    .split { grid-template-columns: 1fr; }
+    .scan-controls { grid-template-columns: 1fr; }
+    .window-body { padding: 14px; }
+    .window-sub { display: none; }
+  }
+  @media (max-width: 460px) {
+    .main { padding: 12px 9px 6px; }
+    .topbar { padding: 9px 10px; gap: 7px; }
+    .brand .mili-shield-svg { width: 32px; height: 32px; }
+    .brand-name { font-size: 0.92rem; }
+    .window-body { padding: 11px; }
+    .user-grid, .loc-grid, .scan-grid { gap: 10px; }
+    .user-card { padding: 12px; }
+    .user-actions .btn.sm { flex: 1 1 calc(50% - 4px); }
+    .scan-tile { padding: 11px 12px; }
+    .scan-head .btn { margin-inline-start: 0; width: 100%; }
+  }
+
+  /* ---------- mobile drawer (کشوی منو) ---------- */
+  .menu-btn { display: none; }
+  .nav-drawer {
+    display: none;
+    position: fixed;
+    inset-inline: 0;
+    top: 0;
+    z-index: 80;
+    max-height: 88vh;
+    overflow-y: auto;
+    background: #060b09;
+    border-bottom: 1px solid var(--line-strong);
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 26px 60px rgba(0, 0, 0, 0.66);
+    transform: translateY(-102%);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.26s ease, opacity 0.2s ease, visibility 0.26s;
+    padding-bottom: 12px;
+  }
+  body.light-mode .nav-drawer { background: #ffffff; }
+  .nav-drawer.is-open { transform: none; opacity: 1; visibility: visible; }
+  .drawer-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    background: rgba(2, 5, 4, 0.6);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .drawer-backdrop.is-open { opacity: 1; pointer-events: auto; }
+  .drawer-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: inherit;
+    border-bottom: 1px solid var(--line);
+  }
+  .drawer-head .mili-shield-svg { width: 30px; height: 30px; }
+  .drawer-title { font-size: 0.92rem; font-weight: 800; }
+  .drawer-close { margin-inline-start: auto; }
+  /* منوی موبایل: فقط آیکون‌های رنگی، بدون کادر و مستطیل بیرونی */
+  .drawer-icons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 8px; padding: 8px 14px 16px; }
+  .drawer-item {
+    appearance: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    padding: 14px 0;
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: transform .18s cubic-bezier(.2, .8, .3, 1), background .18s ease;
+  }
+  .drawer-item .mi { width: 30px; height: 30px; }
+  .drawer-item:hover, .drawer-item:focus-visible { background: rgba(255, 255, 255, 0.05); transform: translateY(-2px); }
+  body.light-mode .drawer-item:hover { background: rgba(12, 26, 18, 0.05); }
+  /* هر لوگو رنگ خودش را دارد */
+  .drawer-item.d-checkup .mi { color: #a6e86b; }
+  .drawer-item.d-telegram .mi { color: #62c8f7; }
+  .drawer-item.d-key .mi { color: #ffce5c; }
+  .drawer-item.d-sun .mi { color: #ffb454; }
+  .drawer-item.d-lang .mi { color: #b79cff; }
+  .drawer-item.d-logout .mi { color: #ff6b6b; }
+  body.light-mode .drawer-item.d-checkup .mi { color: #2f8f2f; }
+  body.light-mode .drawer-item.d-telegram .mi { color: #1789c2; }
+  body.light-mode .drawer-item.d-key .mi { color: #b97800; }
+  body.light-mode .drawer-item.d-sun .mi { color: #d97706; }
+  body.light-mode .drawer-item.d-lang .mi { color: #6b4fd6; }
+  body.light-mode .drawer-item.d-logout .mi { color: #d32f2f; }
+  .drawer-head .icon-btn { border-color: transparent; background: transparent; }
+  .drawer-head .icon-btn:hover { border-color: var(--line-strong); background: rgba(255, 255, 255, 0.06); }
+
+  /* ---------- لایهٔ حرکت، بافت و بازخورد لمسی ---------- */
+  @keyframes mili-drift {
+    0% { transform: translate3d(-6%, -3%, 0) scale(1.04); opacity: .75; }
+    50% { transform: translate3d(5%, 3%, 0) scale(1.12); opacity: 1; }
+    100% { transform: translate3d(-6%, -3%, 0) scale(1.04); opacity: .75; }
+  }
+  @keyframes mili-sheen {
+    0% { transform: translateX(-130%) skewX(-16deg); opacity: 0; }
+    35% { opacity: .9; }
+    100% { transform: translateX(230%) skewX(-16deg); opacity: 0; }
+  }
+  @keyframes mili-ripple {
+    from { opacity: .45; transform: scale(0); }
+    to { opacity: 0; transform: scale(2.4); }
+  }
+  @keyframes mili-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+  @keyframes mili-trace {
+    to { stroke-dashoffset: -240; }
+  }
+
+  body { -webkit-tap-highlight-color: transparent; }
+  .btn, .icon-btn, .tab, .ftab, .chip, .drawer-item, .switch { touch-action: manipulation; }
+  .mi { transition: transform .24s cubic-bezier(.2, .8, .3, 1); }
+  .btn:hover .mi, .tab:hover .mi, .drawer-item:hover .mi, .ftab:hover .mi { transform: scale(1.1) rotate(-4deg); }
+
+  .window { position: relative; }
+  .window::after {
+    content: "";
+    position: absolute;
+    inset-inline: -10%;
+    top: -55%;
+    height: 300px;
+    pointer-events: none;
+    background: radial-gradient(50% 58% at 50% 50%, rgba(181, 255, 77, 0.1), transparent 70%);
+    animation: mili-drift 24s ease-in-out infinite;
+  }
+  .window-head { position: relative; z-index: 1; }
+
+  .metric, .card, .user-card, .loc-card {
+    transition: transform .3s cubic-bezier(.2, .8, .3, 1), box-shadow .3s ease, border-color .3s ease;
+    will-change: transform;
+  }
+  .metric:hover, .card:hover, .user-card:hover, .loc-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--line-strong);
+    box-shadow: 0 22px 46px rgba(0, 0, 0, 0.45);
+  }
+  body.light-mode .metric:hover,
+  body.light-mode .card:hover,
+  body.light-mode .user-card:hover,
+  body.light-mode .loc-card:hover { box-shadow: 0 22px 42px rgba(15, 40, 25, 0.16); }
+
+  .btn { position: relative; overflow: hidden; }
+  .btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 22%, rgba(255, 255, 255, 0.34) 50%, transparent 78%);
+    transform: translateX(-130%);
+    opacity: 0;
+  }
+  .btn:hover::after { animation: mili-sheen .85s ease; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active, .btn.is-press { transform: translateY(0) scale(.975); }
+  .icon-btn:active, .icon-btn.is-press { transform: scale(.94); }
+  /* بدون position روی خود دکمه، موج لمس به گوشهٔ صفحه می‌پرد */
+  .ftab, .icon-btn, .drawer-item, .scan-tile, .loc-card, .loc-act { position: relative; overflow: hidden; }
+  .ripple {
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    margin: -65px 0 0 -65px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(181, 255, 77, 0.55), transparent 70%);
+    animation: mili-ripple .62s ease-out forwards;
+  }
+  body.light-mode .ripple { background: radial-gradient(circle, rgba(11, 138, 75, 0.35), transparent 70%); }
+
+  .tab.is-active .mi { animation: mili-float 3.6s ease-in-out infinite; }
+
+  /* همهٔ آیکون‌ها هنگام کلیک تکان می‌خورند */
+  @keyframes mili-tap {
+    0% { transform: scale(1); }
+    32% { transform: scale(.8) rotate(-7deg); }
+    64% { transform: scale(1.14) rotate(4deg); }
+    100% { transform: scale(1); }
+  }
+  .btn.is-press .mi,
+  .icon-btn.is-press .mi,
+  .tab.is-press .mi,
+  .ftab.is-press .mi,
+  .drawer-item.is-press .mi,
+  .loc-act.is-press .mi,
+  .loc-card.is-press .mi { animation: mili-tap .44s cubic-bezier(.2, .8, .3, 1); }
+  .brand .mili-shield-svg { animation: mili-float 6s ease-in-out infinite; }
+
+  table.scan tbody tr { transition: background .2s ease, box-shadow .2s ease; }
+  table.scan tbody tr:hover { background: rgba(181, 255, 77, 0.05); box-shadow: inset 2px 0 0 var(--neon); }
+  body.light-mode table.scan tbody tr:hover { background: rgba(11, 138, 75, 0.06); }
+
+  .panel.is-active > .window { animation: rise .42s cubic-bezier(.22, .8, .3, 1) both; }
+  .panel.is-active > .window:nth-child(2) { animation-delay: .05s; }
+
+  /* اسکنر: منوی اسکن + صفحهٔ اختصاصی هر اسکن */
+  /* هر اسکن یک کارت مربعی با کلید روشن/خاموش است؛ کارت خودش کلیک نمی‌شود */
+  .scan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 780px; margin: 0 auto; }
+  /* هر اسکن یک کارت کادردار با رنگ اختصاصی؛ آیکون بالا، نام وسط، کلید زیر لوگو */
+  .scan-tile {
+    --accent: var(--neon);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 14px 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.008));
+    color: var(--text);
+    font-family: inherit;
+    transition: transform .28s cubic-bezier(.2, .8, .3, 1), border-color .28s ease, box-shadow .28s ease, background .28s ease;
+  }
+  .scan-tile[data-mode="ipv4"] { --accent: #b5ff4d; }
+  .scan-tile[data-mode="ipv6"] { --accent: #4fd8e4; }
+  .scan-tile[data-mode="domain"] { --accent: #6aa9ff; }
+  .scan-tile[data-mode="proxyip"] { --accent: #b79cff; }
+  .scan-tile[data-mode="proxy"] { --accent: #ffb35c; }
+  .scan-tile[data-mode="manual"] { --accent: #ff8fc7; }
+  body.light-mode .scan-tile[data-mode="ipv4"] { --accent: #2f8f2f; }
+  body.light-mode .scan-tile[data-mode="ipv6"] { --accent: #0f7f8c; }
+  body.light-mode .scan-tile[data-mode="domain"] { --accent: #2b6fd6; }
+  body.light-mode .scan-tile[data-mode="proxyip"] { --accent: #6a49c9; }
+  body.light-mode .scan-tile[data-mode="proxy"] { --accent: #b96b12; }
+  body.light-mode .scan-tile[data-mode="manual"] { --accent: #c0427f; }
+  body.light-mode .scan-tile { background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.55)); }
+  .scan-tile:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .scan-tile.is-on {
+    border-color: var(--accent);
+    box-shadow: 0 12px 28px -18px var(--accent), inset 0 0 22px -14px var(--accent);
+  }
+  .scan-tile .mi { color: var(--accent); width: 30px; height: 30px; transition: transform .28s cubic-bezier(.2, .8, .3, 1); }
+  .scan-tile:hover .mi { transform: scale(1.08); }
+  .scan-tile b { font-size: 0.72rem; font-weight: 700; line-height: 1.4; text-align: center; color: var(--text); }
+  .scan-tile.is-on b { color: var(--accent); }
+  /* کلید روشن/خاموش دقیقاً زیر لوگو می‌نشیند */
+  .scan-tile .scan-switch { flex: none; margin-top: 2px; }
+  .scan-tile.is-on .scan-switch i { border-color: var(--accent); }
+  .scan-tile.is-on .scan-switch i::after { background: var(--accent); box-shadow: 0 0 10px -1px var(--accent); }
+  @media (min-width: 900px) {
+    .scan-grid { gap: 14px; max-width: 900px; }
+    .scan-tile { padding: 20px 14px 16px; gap: 10px; }
+    .scan-tile .mi { width: 38px; height: 38px; }
+    .scan-tile b { font-size: 0.82rem; }
+  }
+  .scan-view { display: none; }
+  .scan-view.is-active { display: block; animation: rise .28s ease both; }
+  .scan-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .scan-head .scan-title { font-size: 0.9rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .scan-head .scan-title .mi { color: var(--neon); }
+  .scan-head .scan-desc { font-size: 0.72rem; color: var(--muted-2); }
+  .scan-head .btn { margin-inline-start: auto; }
+  .scan-note { font-size: 0.74rem; line-height: 1.95; color: var(--muted-2); margin: 0 0 12px; }
+
+  /* اسکنر: ارتفاع آزاد؛ فهرست نتایج همیشه دیده می‌شود و فقط خودش اسکرول دارد */
+  .panel[data-panel="scanner"].is-active {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+  }
+  .panel[data-panel="scanner"] > .window { display: flex; flex-direction: column; flex: none; margin-bottom: 0; }
+  .panel[data-panel="scanner"] .window-body { display: flex; flex-direction: column; min-height: 0; overflow: visible; }
+  #scanHome { display: flex; flex-direction: column; flex: none; min-height: 0; }
+  /* wrapper نماها فقط وقتی نما فعال است ارتفاع می‌گیرد تا در حالت خانه فضای شبکه را نخورد */
+  #scanViews { display: block; }
+  #scanHome { justify-content: center; }
+  #scanHome .scan-grid { flex: none; }
+  #scanBar { flex: none; }
+  #scanHome .toolbar { flex: none; margin: 10px 0 0 !important; flex-wrap: wrap; }
+  .scan-view.is-active { display: block; }
+  /* فهرست نتایج: ارتفاع تضمین‌شده برای دیده شدن؛ اگر بیشتر شد خود جدول اسکرول می‌شود */
+  .scan-view .table-wrap { overflow: auto; min-height: 160px; max-height: 58vh; }
+  .scan-view .scan-status { min-height: 18px; }
+  .panel[data-panel="scanner"] .window-body {
+    background: radial-gradient(78% 58% at 50% 0%, rgba(181, 255, 77, 0.055), transparent 72%);
+  }
+  /* دسکتاپ: کارت اسکنر جمع‌وجور و وسط‌چین می‌شود، نه کشیده و خالی */
+  @media (min-width: 1000px) {
+    .panel[data-panel="scanner"] > .window { max-width: 1040px; margin: 0 auto; }
+    .panel[data-panel="scanner"] .window-body { padding: 26px 30px 22px; }
+    #scanHome .toolbar { margin-top: 18px !important; justify-content: center; }
+    .scan-view .table-wrap { max-height: 52vh; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+    }
+  }
+
+  /* قواعد موبایل آخرین بلوک استایل هستند تا بر قواعد پایهٔ بالا اولویت داشته باشند */
+  @media (max-width: 820px) {
+    .topbar-actions .icon-btn.opt { display: none; }
+    .topbar-actions .icon-btn { width: 34px; height: 34px; }
+    .topbar-actions .icon-btn.install { width: 34px; height: 34px; }
+    .topbar-actions { gap: 6px; }
+    .menu-btn { display: inline-flex; }
+    .nav-drawer { display: block; }
+    .drawer-backdrop { display: block; }
+    .toast { bottom: 24px; }
+    .tabbar { top: 55px; padding: 8px 0 10px; }
+    .tabbar-pill { width: 100%; padding: 6px; gap: 5px; }
+    .tab { height: 54px; padding: 6px 3px; font-size: 0.63rem; }
+    .tab .mi { width: 18px; height: 18px; }
+  }
+
+  /* === ZEUS NEON GREEN AMOLED TEMPLATE OVERRIDES === */
+  :root {
+    --bg: #020804;
+    --bg-soft: #06140b;
+    --panel: rgba(6, 20, 11, 0.92);
+    --panel-2: rgba(11, 34, 20, 0.92);
+    --line: rgba(0, 255, 102, 0.18);
+    --line-strong: rgba(0, 255, 102, 0.48);
+    --neon: #00ff66;
+    --neon-soft: rgba(0, 255, 102, 0.12);
+    --neon-glow: rgba(0, 255, 102, 0.35);
+    --text: #f0fdf4;
+    --muted: #86efac;
+    --muted-2: #4ade80;
+    --danger: #ff5555;
+    --warn: #fbbf24;
+    --info: #22d3ee;
+    --radius: 14px;
+  }
+  .topbar {
+    background: rgba(6, 20, 11, 0.94);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 20px;
+  }
+  .topbar-inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .zeus-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .zeus-quick-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(11, 34, 20, 0.85);
+    border: 1px solid var(--line);
+    padding: 5px 12px;
+    border-radius: 999px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  }
+  .zeus-quick-pill a, .zeus-quick-pill button {
+    background: none;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, color 0.2s;
+  }
+  .zeus-quick-pill a:hover, .zeus-quick-pill button:hover {
+    transform: scale(1.22);
+    color: var(--neon);
+  }
+  .topbar-actions .icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px !important;
+    padding: 0;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  }
+  .topbar-actions .icon-btn:hover {
+    transform: scale(1.1);
+  }
+  .topbar-actions .icon-btn.placement-btn {
+    color: #22d3ee;
+    border-color: rgba(34, 211, 238, 0.45);
+    background: rgba(34, 211, 238, 0.12);
+  }
+  .topbar-actions .icon-btn.update-btn {
+    color: #00ff66;
+    border-color: rgba(0, 255, 102, 0.45);
+    background: rgba(0, 255, 102, 0.12);
+  }
+  .topbar-actions .icon-btn.pwd-btn {
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.45);
+    background: rgba(251, 191, 36, 0.12);
+  }
+
+  /* Collapsible Stats Accordion (Zeus style) */
+  .zeus-stats-accordion {
+    background: rgba(11, 34, 20, 0.45);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    margin-bottom: 18px;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  }
+  .zeus-stats-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .zeus-stats-header:hover {
+    background: rgba(0, 255, 102, 0.06);
+  }
+  .zeus-stats-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .zeus-stats-icon-box {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(0, 255, 102, 0.14);
+    color: var(--neon);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .zeus-stats-body {
+    padding: 12px;
+    border-top: 1px solid var(--line);
+    transition: max-height 0.35s ease, opacity 0.25s ease;
+  }
+  .zeus-stats-body.is-collapsed {
+    display: none;
+  }
+  /* Compact Rectangular Zeus Stat Cards (override 1:1 square aspect-ratio) */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  @media (min-width: 900px) {
+    .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  .metric {
+    aspect-ratio: auto !important;
+    min-height: 74px;
+    padding: 11px 13px;
+    border-radius: 10px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+  .metric-value {
+    font-size: 1.15rem !important;
+    color: var(--neon);
+  }
+
+  /* Zeus Filter & Navigation Bar */
+  .zeus-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-bottom: 16px;
+  }
+  .zeus-search-box {
+    position: relative;
+    flex: 1 1 240px;
+    min-width: 180px;
+  }
+  .zeus-search-box input {
+    width: 100%;
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #0b2214;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.78rem;
+    outline: none;
+  }
+  .zeus-search-box input:focus {
+    border-color: var(--neon);
+    box-shadow: 0 0 0 2px rgba(0, 255, 102, 0.18);
+  }
+  .zeus-nav-pills {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .zeus-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #0b2214;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.18s;
+  }
+  .zeus-nav-btn:hover {
+    color: var(--text);
+    border-color: var(--line-strong);
+  }
+  .zeus-nav-btn.is-active {
+    background: var(--neon-soft);
+    color: var(--neon);
+    border-color: var(--neon);
+    box-shadow: 0 0 12px rgba(0, 255, 102, 0.22);
+  }
+
+  /* Zeus Section Header with 4 Glowing Circular Action Buttons */
+  .zeus-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 0 4px;
+  }
+  .zeus-list-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .zeus-circle-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .zeus-circle-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .zeus-circle-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.25s, box-shadow 0.25s;
+    position: relative;
+  }
+  .zeus-circle-btn:hover {
+    transform: scale(1.18);
+  }
+  .zeus-circle-btn.cyan {
+    background: rgba(6, 182, 212, 0.15);
+    border: 2px solid #06b6d4;
+    color: #22d3ee;
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.55);
+  }
+  .zeus-circle-btn.orange {
+    background: rgba(249, 115, 22, 0.15);
+    border: 2px solid #f97316;
+    color: #fb923c;
+    box-shadow: 0 0 15px rgba(249, 115, 22, 0.55);
+  }
+  .zeus-circle-btn.indigo {
+    background: rgba(99, 102, 241, 0.15);
+    border: 2px solid #6366f1;
+    color: #818cf8;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.55);
+  }
+  .zeus-circle-btn.green {
+    background: rgba(0, 255, 102, 0.15);
+    border: 2px solid #00ff66;
+    color: #00ff66;
+    box-shadow: 0 0 15px rgba(0, 255, 102, 0.55);
+  }
+  .zeus-gear-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    z-index: 5;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #ef4444;
+    border: 2px solid #020804;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.7);
+    transition: transform 0.2s;
+  }
+  .zeus-gear-badge:hover {
+    transform: scale(1.22);
+    background: #dc2626;
+  }
+  .zeus-gear-badge svg, .zeus-gear-badge .mi {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Zeus Horizontal Row-Table for Users */
+  .user-grid {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .zeus-table-head {
+    display: none;
+  }
+  @media (min-width: 860px) {
+    .zeus-table-head {
+      display: grid;
+      grid-template-columns: 1.2fr 110px 1.1fr 1.6fr 1.1fr 1.1fr;
+      gap: 10px;
+      padding: 11px 14px;
+      background: rgba(6, 20, 11, 0.85);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--muted);
+      text-align: center;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+  }
+  .user-card.zeus-row {
+    background: rgba(6, 20, 11, 0.85);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  }
+  .user-card.zeus-row:hover {
+    border-color: var(--line-strong);
+    box-shadow: 0 8px 28px rgba(0, 255, 102, 0.1);
+    transform: translateY(-1px);
+  }
+  @media (min-width: 860px) {
+    .user-card.zeus-row {
+      display: grid;
+      grid-template-columns: 1.2fr 110px 1.1fr 1.6fr 1.1fr 1.1fr;
+      gap: 10px;
+      align-items: center;
+      text-align: center;
+    }
+  }
+  .z-col-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+  .z-ops-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 30px);
+    gap: 5px;
+    justify-content: center;
+    margin: 0 auto;
+  }
+  .z-op-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: 0.18s;
+    padding: 0;
+  }
+  .z-op-btn .mi { width: 15px; height: 15px; }
+  .z-op-btn.edit { background: rgba(0, 255, 102, 0.12); border-color: rgba(0, 255, 102, 0.4); color: #00ff66; }
+  .z-op-btn.test { background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; }
+  .z-op-btn.reset { background: rgba(251, 191, 36, 0.12); border-color: rgba(251, 191, 36, 0.4); color: #fbbf24; }
+  .z-op-btn.del { background: rgba(248, 113, 113, 0.12); border-color: rgba(248, 113, 113, 0.4); color: #f87171; }
+  .z-op-btn:hover { transform: scale(1.12); filter: brightness(1.2); }
+
+  .z-subs-col {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-width: 220px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .z-sub-row {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+  }
+  .z-sub-btn {
+    flex: 1;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: 0.18s;
+  }
+  .z-sub-btn .mi { width: 12px; height: 12px; }
+  .z-sub-btn.status { background: rgba(0, 255, 102, 0.12); border: 1px solid rgba(0, 255, 102, 0.4); color: #00ff66; }
+  .z-sub-btn.sub { background: rgba(99, 102, 241, 0.14); border: 1px solid rgba(99, 102, 241, 0.45); color: #a5b4fc; }
+  .z-sub-btn.qr { flex: 0 0 26px; width: 26px; padding: 0; background: rgba(251, 191, 36, 0.14); border: 1px solid rgba(251, 191, 36, 0.45); color: #fcd34d; }
+  .z-sub-btn.clash { background: rgba(236, 72, 153, 0.14); border: 1px solid rgba(236, 72, 153, 0.45); color: #f472b6; }
+  .z-sub-btn.sbox { background: rgba(34, 211, 238, 0.14); border: 1px solid rgba(34, 211, 238, 0.45); color: #67e8f9; }
+  .z-sub-btn.extra { background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); color: var(--muted); }
+  .z-sub-btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+
+  /* Zeus 2-Column Sidebar Modal for #createModal */
+  @media (min-width: 768px) {
+    .modal-card.wide.user-form-modal {
+      width: min(980px, 96vw);
+      height: min(86vh, 760px);
+      display: grid;
+      grid-template-columns: 230px 1fr;
+      grid-template-rows: auto 1fr auto;
+    }
+    .user-form-modal .modal-head {
+      grid-column: 1 / -1;
+      background: #020804;
+    }
+    .user-form-modal .form-tabs {
+      grid-column: 1 / 2;
+      grid-row: 2 / 3;
+      flex-direction: column;
+      border-bottom: none;
+      border-left: 1px solid var(--line);
+      background: rgba(2, 8, 4, 0.75);
+      padding: 14px 12px;
+      gap: 8px;
+      overflow-y: auto;
+    }
+    .user-form-modal .ftab {
+      width: 100%;
+      justify-content: flex-start;
+      padding: 11px 14px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+    }
+    .user-form-modal .modal-body {
+      grid-column: 2 / 3;
+      grid-row: 2 / 4;
+      padding: 20px 24px;
+      max-height: none;
+      height: 100%;
+      overflow-y: auto;
+    }
+    .user-form-modal .modal-foot {
+      grid-column: 1 / 2;
+      grid-row: 3 / 4;
+      flex-direction: column;
+      border-top: 1px solid var(--line);
+      border-left: 1px solid var(--line);
+      background: rgba(2, 8, 4, 0.9);
+      padding: 12px;
+    }
+    .user-form-modal .modal-foot .btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  /* Placement Region Modal Styles */
+  .pl-mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .pl-mode-card {
+    display: flex; align-items: center; justify-content: space-between; padding: 12px;
+    border-radius: 12px; border: 1px solid var(--line); background: #0b2214; cursor: pointer; transition: 0.2s;
+  }
+  .pl-mode-card.is-selected { border-color: var(--neon); background: rgba(0, 255, 102, 0.12); box-shadow: 0 0 15px rgba(0, 255, 102, 0.2); }
+  .pl-prov-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .pl-prov-btn {
+    padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: #0b2214;
+    color: var(--text); font-family: inherit; font-size: 0.78rem; font-weight: 800; cursor: pointer; text-align: center;
+  }
+  .pl-prov-btn.is-selected { border-color: #22d3ee; color: #22d3ee; background: rgba(34, 211, 238, 0.14); }
+  .pl-reg-list { display: flex; flex-direction: column; gap: 6px; max-height: 230px; overflow-y: auto; padding: 4px; }
+  .pl-reg-row {
+    display: grid; grid-template-columns: 1.2fr 1fr 1.1fr 1fr; gap: 8px; align-items: center; text-align: center;
+    padding: 8px 10px; border-radius: 9px; border: 1px solid var(--line); background: #06140b;
+    color: var(--text); font-family: inherit; font-size: 0.73rem; cursor: pointer; transition: 0.16s;
+  }
+  .pl-reg-row:hover { border-color: #22d3ee; }
+  .pl-reg-row.is-selected { border-color: var(--neon); background: rgba(0, 255, 102, 0.15); box-shadow: 0 0 12px rgba(0, 255, 102, 0.25); }
+
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="zeus-brand-row">
+        <button class="icon-btn menu-btn" type="button" data-act="toggle-drawer" aria-controls="navDrawer" aria-expanded="false" title="منو">${icon('menu')}</button>
+        <div class="brand" dir="ltr">
+          ${SHIELD_LOGO_SVG}
+          <div class="brand-text">
+            <div class="brand-name">${BRAND_UPPER}</div>
+            <div class="brand-ver">${VERSION}</div>
+          </div>
+        </div>
+        <div class="zeus-quick-pill" dir="ltr">
+          <a href="${SUPPORT_URL}" target="_blank" rel="noopener" title="کانال تلگرام ${TELEGRAM_SUPPORT}">${icon('telegram')}</a>
+          <button type="button" data-act="copy-master" title="کپی ساب‌لینک اصلی مدیر (۴۰۰ نود)">${icon('bolt')}</button>
+          <button type="button" data-act="copy-admin-path" title="کپی آدرس پنل مدیریت">${icon('copy')}</button>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn install" id="installBtn" type="button" data-act="install-app" title="دانلود و نصب اپلیکیشن پنل">${icon('install')}</button>
+        <button class="icon-btn help-btn" type="button" data-act="open-help" title="راهنمای کامل پنل و ساخت کانفیگ">${icon('shield')}</button>
+        <button class="icon-btn placement-btn" type="button" data-act="open-placement" title="تغییر ریجن پنل کلودفلر (Placement)">${icon('globe')}</button>
+        <button class="icon-btn reset-all" type="button" data-act="open-reset" title="بازگرداندن تنظیمات به پیش‌فرض">${icon('refresh')}</button>
+        <button class="icon-btn opt" type="button" data-act="toggle-theme" id="themeBtn" title="تغییر تم روز / شب">${icon('sun')}</button>
+        <button class="icon-btn opt" type="button" data-act="toggle-lang" id="langBtn" title="تغییر زبان (FA/EN)">${icon('layers')}</button>
+        <button class="icon-btn update-btn" type="button" data-act="check-update" title="بررسی و نصب بروزرسانی">${icon('download')}</button>
+        <button class="icon-btn pwd-btn" type="button" data-act="open-password" title="تغییر رمز عبور مدیر">${icon('key')}</button>
+        <button class="icon-btn danger" type="button" data-act="logout" title="خروج از پنل">${icon('logout')}</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-backdrop" id="drawerBackdrop" data-act="close-drawer"></div>
+  <nav class="nav-drawer" id="navDrawer" aria-label="منوی اصلی" aria-hidden="true">
+    <div class="drawer-head">
+      ${SHIELD_LOGO_SVG}
+      <div>
+        <div class="drawer-title">${BRAND_UPPER}</div>
+        <div class="brand-ver">${VERSION}</div>
+      </div>
+      <button class="icon-btn drawer-close" type="button" data-act="close-drawer" title="بستن">${icon('close')}</button>
+    </div>
+    <div class="drawer-icons">
+      <button class="drawer-item d-checkup" type="button" data-act="check-update" title="بررسی بروزرسانی">${icon('refresh')}</button>
+      <button class="drawer-item d-telegram" type="button" data-act="open-placement" title="تغییر ریجن پنل">${icon('globe')}</button>
+      <button class="drawer-item d-key" type="button" data-act="open-password" title="تغییر رمز مدیر">${icon('key')}</button>
+      <button class="drawer-item d-sun" type="button" data-act="toggle-theme" title="حالت روز / شب">${icon('sun')}</button>
+      <button class="drawer-item d-lang" type="button" data-act="toggle-lang" title="تغییر زبان">${icon('layers')}</button>
+      <button class="drawer-item d-logout" type="button" data-act="logout" title="خروج">${icon('logout')}</button>
+    </div>
+  </nav>
+
+  <main class="main">
+
+  <!-- آکاردئون کشویی آمار و وضعیت سرور (دقیقاً به سبک قالب زئوس) -->
+  <div class="zeus-stats-accordion">
+    <button type="button" class="zeus-stats-header" onclick="var b=document.getElementById('zeusStatsBody');var ic=document.getElementById('zeusStatsChevron');b.classList.toggle('is-collapsed');ic.style.transform=b.classList.contains('is-collapsed')?'rotate(180deg)':'rotate(0deg)';">
+      <div class="zeus-stats-header-title">
+        <span class="zeus-stats-icon-box">${icon('activity')}</span>
+        <span>آمار و وضعیت سرور</span>
+      </div>
+      <span id="zeusStatsChevron" style="transition:transform 0.3s;display:inline-flex;">${icon('chevron')}</span>
+    </button>
+    <div class="zeus-stats-body" id="zeusStatsBody">
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-top"><span class="metric-label" data-i18n="metric.traffic">ترافیک مصرفی سرور</span><span class="metric-icon">${icon('activity')}</span></div>
+          <div class="metric-value" id="mTraffic">0.00 <small>GB</small></div>
+          <div class="metric-foot">مجموع مصرف کاربران روی D1</div>
+        </div>
+        <div class="metric">
+          <div class="metric-top"><span class="metric-label" data-i18n="metric.users">کاربران فعال</span><span class="metric-icon">${icon('users')}</span></div>
+          <div class="metric-value" id="mUsers">0 <small>/ ${MAX_USERS_LIMIT}</small></div>
+          <div class="metric-foot" id="mUsersFoot">ظرفیت آزاد</div>
+        </div>
+        <div class="metric">
+          <div class="metric-top"><span class="metric-label" data-i18n="metric.ips">آی‌پی‌ها و نودهای سالم</span><span class="metric-icon">${icon('server')}</span></div>
+          <div class="metric-value" id="mIps">0 <small>نود</small></div>
+          <div class="metric-foot">IPv4 · IPv6 · دامنه · استخر اختصاصی</div>
+        </div>
+        <div class="metric">
+          <div class="metric-top"><span class="metric-label" data-i18n="metric.protocols">پروتکل‌ها و دیتابیس</span><span class="metric-icon">${icon('database')}</span></div>
+          <div class="metric-value" id="mProto" style="font-size: 0.95rem;">—</div>
+          <div class="metric-foot">بایندینگ D1 و هستهٔ فعال</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- نوار جستجو، فیلتر و سوییچ بخش‌های اصلی پنل (کاربران / اسکنر زنده / چندلوکیشن و WARP / هسته و آپدیت) -->
+  <div class="zeus-filter-bar" id="tabbar">
+    <div class="zeus-search-box">
+      <input type="text" id="zeusSearchInput" oninput="renderUsers()" placeholder="جستجوی نام کاربری یا UUID...">
+    </div>
+    <div class="zeus-nav-pills" role="tablist">
+      <button class="zeus-nav-btn tab is-active" type="button" data-tab="users">${icon('users')} <span data-i18n="nav.users">لیست کاربران</span></button>
+      <button class="zeus-nav-btn tab" type="button" data-tab="scanner">${icon('radar')} <span data-i18n="nav.scanner">اسکنر زنده</span></button>
+      <button class="zeus-nav-btn tab" type="button" data-tab="locations">${icon('globe')} <span data-i18n="nav.locations">چندلوکیشن و WARP</span></button>
+      <button class="zeus-nav-btn tab" type="button" data-tab="dashboard">${icon('terminal')} <span data-i18n="nav.dashboard">هسته و آپدیت</span></button>
+    </div>
+  </div>
+
+    <section class="panel" data-panel="dashboard">
+      <div class="window">
+        <div class="window-head">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <div class="window-title">${icon('terminal')} <span data-i18n="panel.dashboard">وضعیت هسته، مسیر مدیریت و بروزرسانی خودکار</span></div>
+          <div class="spacer"></div>
+          <button class="btn sm ghost" type="button" data-act="reload-users">${icon('refresh')} <span data-i18n="btn.reload">بروزرسانی</span></button>
+        </div>
+        <div class="window-body">
+
+          <div class="split">
+            <div class="card">
+              <h3>${icon('terminal')} وضعیت هسته</h3>
+              <div class="kv"><span>موتور پروکسی</span><b>VLESS / Trojan / xHTTP</b></div>
+              <div class="kv"><span>ذخیره‌سازی</span><b id="kvStorage">—</b></div>
+              <div class="kv"><span>بایندینگ دیتابیس</span><b id="kvBinding">—</b></div>
+              <div class="kv"><span>مسیر مدیریت</span><b id="kvPath" class="mono">—</b></div>
+              <div class="kv"><span>سقف کاربران</span><b>${MAX_USERS_LIMIT}</b></div>
+            </div>
+            <div class="card">
+              <h3>${icon('bolt')} اقدام‌های سریع</h3>
+              <div class="toolbar" style="flex-direction: column; align-items: stretch;">
+                <button class="btn primary" type="button" data-act="open-create">${icon('plus')} <span data-i18n="btn.newUser">کاربر جدید</span></button>
+                <button class="btn" type="button" data-act="go-scan">${icon('radar')} <span data-i18n="nav.scanner">اسکنر</span></button>
+                <button class="btn" type="button" data-act="copy-master">${icon('copy')} <span data-i18n="btn.copyMaster">کپی سابلینک اصلی</span></button>
+                <button class="btn ghost" type="button" data-act="open-password">${icon('key')} <span data-i18n="btn.password">تغییر رمز مدیر</span></button>
+                <button class="btn ghost" type="button" data-act="copy-admin-path">${icon('copy')} کپی مسیر مدیریت</button>
+                <button class="btn ghost" type="button" data-act="rotate-path">${icon('refresh')} مسیر مدیریت جدید</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- نسخه و بروزرسانی: این بخش نسخهٔ نصب‌شده را با گیت‌هاب مقایسه می‌کند -->
+          <div class="card" id="updateCard" style="margin-top:16px;">
+            <h3>${icon('refresh')} نسخه و بروزرسانی</h3>
+            <div class="kv"><span>نسخهٔ نصب‌شده</span><b class="mono">v${VERSION.replace(/^v/i, '')}</b></div>
+            <div class="kv"><span>آخرین نسخهٔ گیت‌هاب</span><b class="mono" id="updLatest">—</b></div>
+            <div class="kv"><span>وضعیت</span><b id="updState">بررسی نشده</b></div>
+            <div class="kv"><span>نصب خودکار</span><b id="updAuto">—</b></div>
+            <div class="kv"><span>اسکریپت هدف</span><b class="mono" id="updScript">—</b></div>
+            <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+              <button class="btn sm" type="button" data-act="check-update">${icon('refresh')} بررسی بروزرسانی</button>
+              <button class="btn sm" type="button" data-act="download-update">${icon('download')} دانلود فایل نسخهٔ تازه</button>
+              <button class="btn sm" type="button" data-act="copy-update-cmd">${icon('copy')} کپی دستور استقرار</button>
+              <button class="btn sm primary" type="button" data-act="apply-update">${icon('bolt')} نصب خودکار</button>
+              <button class="btn sm ghost" type="button" data-act="diagnose-update">${icon('terminal')} تشخیص نصب خودکار</button>
+              <button class="btn sm ghost" type="button" data-act="disable-autoupdate">${icon('close')} خاموش کردن</button>
+            </div>
+            <div class="adv-box" id="updDiagBox" style="display:none;margin-top:10px;">
+              <div class="loc-meta" id="updDiagBody" style="line-height:2;"></div>
+            </div>
+            <div class="loc-meta" style="margin-top:8px;line-height:1.9;">
+              بروزرسانی هیچ ورودی از حساب کلادفلر نمی‌خواهد. اگر این ورکر به گیت‌هاب وصل باشد، نسخهٔ تازه خودکار مستقر می‌شود؛ وگرنه فایل تازه را دانلود کنید یا دستور آمادهٔ استقرار را اجرا کنید.
+              نصب خودکار از داخل پنل فقط وقتی فعال می‌شود که متغیر محرمانهٔ <b class="mono">CF_API_TOKEN</b> در تنظیمات خود ورکر تعریف شده باشد.
+            </div>
+            <ul id="updNotes" class="loc-meta" style="margin:8px 0 0;padding-inline-start:18px;display:none;"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel is-active" data-panel="users">
+      <div class="zeus-list-header">
+        <div class="zeus-list-title">
+          <span>لیست کاربران</span>
+        </div>
+        <div class="zeus-circle-actions">
+          <div class="zeus-circle-wrap">
+            <button type="button" class="zeus-circle-btn cyan" data-tab="locations" title="چندلوکیشن، WARP و OpenVPN">${icon('globe')}</button>
+            <button type="button" class="zeus-gear-badge" data-act="open-placement" title="تغییر ریجن پنل کلودفلر (Placement)">${icon('settings')}</button>
+          </div>
+          <button type="button" class="zeus-circle-btn orange" data-tab="scanner" title="اسکنر زنده آی‌پی و پروکسی (۶ حالته)">${icon('radar')}</button>
+          <button type="button" class="zeus-circle-btn indigo" data-act="copy-master" title="کپی ساب‌لینک اصلی مدیر (۴۰۰ نود)">${icon('bolt')}</button>
+          <button type="button" class="zeus-circle-btn green" data-act="open-create" title="ایجاد کاربر جدید (با تمام امکانات پنل)">${icon('plus')}</button>
+        </div>
+      </div>
+      <div class="zeus-table-head">
+        <div>اطلاعات کاربر</div>
+        <div>عملیات</div>
+        <div>پروتکل و قابلیت‌ها</div>
+        <div>لینک‌های ساب و ابزارها</div>
+        <div>حجم مصرفی</div>
+        <div>اعتبار و ظرفیت</div>
+      </div>
+      <div class="user-grid" id="usersGrid"></div>
+      <div class="empty" id="usersEmpty" style="display:none;">هنوز کاربری ساخته نشده است. روی دکمهٔ سبز + بالا کلیک کنید.</div>
+    </section>
+
+    <section class="panel" data-panel="scanner">
+      <div class="window">
+        <div class="window-head">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <div class="window-title">${icon('radar')} <span id="scanPanelTitle" data-i18n="panel.scanner">اسکنر زنده</span> <span class="window-sub" data-i18n="panel.scannerSub">همهٔ اسکن‌ها داخل پنل اجرا می‌شوند</span></div>
+          <div class="spacer"></div>
+          <button class="btn sm ghost" type="button" id="scanBackBtn" data-act="scan-back" style="display:none;">${icon('back')} بازگشت به اسکن‌ها</button>
+        </div>
+        <div class="window-body">
+          <!-- خانهٔ اسکنر: هر اسکن یک کارت مربعی با کلید روشن/خاموش است -->
+          <div id="scanHome">
+            <div class="scan-grid">
+              <div class="scan-tile" data-mode="ipv4" title="IPv4">
+                ${icon('server')}
+                <b>IPv4</b>
+                <label class="switch scan-switch"><input type="checkbox" data-scan="ipv4" aria-label="IPv4"><i></i></label>
+              </div>
+              <div class="scan-tile" data-mode="ipv6" title="IPv6">
+                ${icon('signal')}
+                <b>IPv6</b>
+                <label class="switch scan-switch"><input type="checkbox" data-scan="ipv6" aria-label="IPv6"><i></i></label>
+              </div>
+              <div class="scan-tile" data-mode="domain" title="Domain">
+                ${icon('globe')}
+                <b>Domain</b>
+                <label class="switch scan-switch"><input type="checkbox" data-scan="domain" aria-label="Domain"><i></i></label>
+              </div>
+              <div class="scan-tile" data-mode="proxyip" title="ProxyIP">
+                ${icon('api')}
+                <b>ProxyIP</b>
+                <label class="switch scan-switch"><input type="checkbox" data-scan="proxyip" aria-label="ProxyIP"><i></i></label>
+              </div>
+              <div class="scan-tile" data-mode="proxy" title="SOCKS5">
+                ${icon('link')}
+                <b>SOCKS5</b>
+                <label class="switch scan-switch"><input type="checkbox" data-scan="proxy" aria-label="SOCKS5"><i></i></label>
+              </div>
+              <div class="scan-tile" data-mode="manual" title="Manual">
+                ${icon('terminal')}
+                <b>Manual</b>
+                <label class="switch scan-switch"><input type="checkbox" data-scan="manual" aria-label="Manual"><i></i></label>
+              </div>
+            </div>
+          </div>
+          <!-- مقصد نتیجه: در همهٔ صفحه‌های اسکن مشترک است -->
+          <div id="scanBar" style="display:none;">
+            <div class="scan-controls" style="margin-bottom: 4px;">
+              <div class="field">
+                <label>افزودن نتیجه به کاربر</label>
+                <select id="scanUser"><option value="">تنظیمات پیش‌فرض پنل</option></select>
+              </div>
+              <div class="field">
+                <label>مقصد نتیجه</label>
+                <select id="scanTarget">
+                  <option value="yx" selected>آدرس‌های دستی</option>
+                  <option value="p">آدرس واسط (ProxyIP)</option>
+                  <option value="s">پروکسی خروجی</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="scanViews"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="locations">
+      <div class="window">
+        <div class="window-head">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <div class="window-title">${icon('pin')} <span data-i18n="panel.locations">چندلوکیشن</span> <span class="window-sub" data-i18n="panel.locationsSub">سابلینک به تفکیک کشور</span></div>
+          <div class="spacer"></div>
+          <button class="btn sm ghost" type="button" data-act="copy-master">${icon('copy')} همه لوکیشن‌ها</button>
+        </div>
+        <div class="window-body">
+          <p class="loc-meta" style="margin: 0 0 12px;">برای هر منطقه، آدرس‌های همان کشور از منابع عمومی خوانده و تست می‌شوند. با «آی‌پی تصادفی» چند آدرس سالم همان منطقه داخل تنظیمات کاربر انتخابی نوشته می‌شود.</p>
+          <div class="scan-controls" style="margin-bottom:12px;">
+            <div class="field">
+              <label>منطقه</label>
+              <select id="locRegion">${countryOptions()}</select>
+            </div>
+            <div class="field">
+              <label>کاربر هدف</label>
+              <select id="locUser"><option value="">تنظیمات پیش‌فرض پنل</option></select>
+            </div>
+            <button class="btn primary" type="button" data-act="loc-random-ip">${icon('bolt')} افزودن آی‌پی تصادفی</button>
+            <button class="btn" type="button" data-act="loc-random-ipv6">${icon('signal')} آی‌پی تصادفی IPv6</button>
+            <button class="btn ghost" type="button" data-act="loc-copy-region">${icon('copy')} کپی ساب همین منطقه</button>
+          </div>
+          <div class="scan-status" id="locStatus"></div>
+          <div class="loc-grid" id="locGrid"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+
+  <!-- فرم ساخت/ویرایش کاربر: همهٔ گزینه‌های موتور به‌صورت داینامیک از
+       USER_FORM_SCHEMA ساخته می‌شوند تا هیچ متغیری جا نیفتد. -->
+  <div class="modal" id="createModal">
+    <div class="modal-card wide user-form-modal">
+      <div class="modal-head"><b id="userFormTitle">${icon('plus')} ایجاد کاربر جدید</b><button class="icon-btn" type="button" data-act="close-modal" data-modal="createModal">${icon('close')}</button></div>
+      <div class="form-tabs" id="userFormTabs" role="tablist"></div>
+      <div class="modal-body" id="userFormBody"></div>
+      <div class="modal-foot">
+        <button class="btn primary" type="button" data-act="save-user" id="userFormSubmit">${icon('check')} <span data-i18n="modal.createBtn">ساخت کاربر</span></button>
+        <button class="btn ghost" type="button" data-act="close-modal" data-modal="createModal"><span data-i18n="modal.cancel">انصراف</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="passwordModal">
+    <div class="modal-card">
+      <div class="modal-head"><b>${icon('key')} تغییر رمز مدیر</b><button class="icon-btn" type="button" data-act="close-modal" data-modal="passwordModal">${icon('close')}</button></div>
+      <div class="modal-body">
+        <div class="field"><label>رمز فعلی</label><input type="password" id="pwdOld" autocomplete="current-password"></div>
+        <div class="field"><label>رمز جدید</label><input type="password" id="pwdNew" autocomplete="new-password"></div>
+        <div class="field"><label>تکرار رمز جدید</label><input type="password" id="pwdNew2" autocomplete="new-password"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn primary" type="button" data-act="save-password">${icon('check')} ذخیره رمز</button>
+        <button class="btn ghost" type="button" data-act="close-modal" data-modal="passwordModal">انصراف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- بازگرداندن همهٔ تنظیمات به پیش‌فرض (دکمهٔ قرمز هدر) -->
+  <div class="modal animated" id="resetAllModal" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-head"><b>${icon('refresh')} بازگرداندن همهٔ تنظیمات به پیش‌فرض</b><button class="icon-btn" type="button" data-act="close-modal" data-modal="resetAllModal" aria-label="بستن">${icon('close')}</button></div>
+      <div class="modal-body">
+        <p class="help-lead">اگر تنظیمات را به‌هم ریختی و نمی‌دانی کدام گزینه را عوض کردی، این دکمه همه‌چیز را به حالت اولیهٔ کارخانه برمی‌گرداند.</p>
+        <ul class="reset-list">
+          <li><b>چه چیزی ریست می‌شود:</b> تنظیمات کلی موتور (پروتکل‌ها، پورت‌ها، فرگمنت، DNS، WARP، مسیر خروج و...).</li>
+          <li><b>چه چیزی دست‌نخورده می‌ماند:</b> کاربران، شناسه‌ها، حجم مصرف‌شده، تاریخ انقضا، رمز مدیر، مسیر پنل و توکن بروزرسانی.</li>
+          <li><b>بعدش چه می‌شود:</b> ساب‌لینک‌ها با تنظیمات پیش‌فرض از نو ساخته می‌شوند؛ کافی است در کلاینت «بروزرسانی ساب» بزنی.</li>
+        </ul>
+        <div class="help-note"><b>پیشنهاد:</b> قبل از ریست، اگر تنظیم خاصی را دوست داشتی آن را یادداشت کن تا دوباره همان را وارد کنی.</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn danger" type="button" data-act="confirm-reset">${icon('power')} بله، همه را پیش‌فرض کن</button>
+        <button class="btn ghost" type="button" data-act="close-modal" data-modal="resetAllModal">انصراف</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- مودال تغییر ریجن پنل کلودفلر (Cloudflare Worker Region Placement) -->
+  <div class="modal animated" id="placementModal" role="dialog" aria-modal="true">
+    <div class="modal-card wide" style="max-width:640px;">
+      <div class="modal-head">
+        <b>${icon('globe')} تغییر ریجن پنل و کانفیگ‌های مستقیم (Cloudflare Placement)</b>
+        <button class="icon-btn" type="button" data-act="close-modal" data-modal="placementModal">${icon('close')}</button>
+      </div>
+      <div class="modal-body">
+        <p class="help-lead" style="margin-bottom:6px;font-size:0.78rem;">می‌توانید لوکیشن اجرای ورکر و کانفیگ‌های مستقیم را روی دیتاسنترهای رسمی کلودفلر (GCP / AWS / Azure) یا حالت هوشمند تنظیم کنید:</p>
+        <div class="pl-mode-grid">
+          <div class="pl-mode-card is-selected" id="plModeSmart" onclick="selectPlacementMode('smart')">
+            <div>
+              <div style="font-size:0.82rem;font-weight:800;color:var(--neon);">انتخاب خودکار (Smart)</div>
+              <div style="font-size:0.68rem;color:var(--muted);">مسیریابی هوشمند توسط کلودفلر</div>
+            </div>
+            <span>${icon('bolt')}</span>
+          </div>
+          <div class="pl-mode-card" id="plModeManual" onclick="selectPlacementMode('manual')">
+            <div>
+              <div style="font-size:0.82rem;font-weight:800;color:#22d3ee;">انتخاب دستی (Specific)</div>
+              <div style="font-size:0.68rem;color:var(--muted);">انتخاب دیتاسنتر، کشور و شهر</div>
+            </div>
+            <span>${icon('globe')}</span>
+          </div>
+        </div>
+        <div id="plManualBox" style="display:none;">
+          <div class="pl-prov-tabs">
+            <button type="button" class="pl-prov-btn is-selected" data-prov="GCP" onclick="selectPlacementProvider('GCP')">Google Cloud (GCP)</button>
+            <button type="button" class="pl-prov-btn" data-prov="AWS" onclick="selectPlacementProvider('AWS')">Amazon (AWS)</button>
+            <button type="button" class="pl-prov-btn" data-prov="Azure" onclick="selectPlacementProvider('Azure')">Microsoft (Azure)</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1.2fr 1fr 1.1fr 1fr;gap:8px;padding:6px 10px;font-size:0.7rem;font-weight:800;color:var(--muted);text-align:center;border-bottom:1px solid var(--line);">
+            <div>آیدی ریجن</div><div>موقعیت</div><div>کشور</div><div>شهر</div>
+          </div>
+          <div class="pl-reg-list" id="plRegionsList"></div>
+        </div>
+        <div class="field" style="margin-top:8px;">
+          <label>توکن API کلودفلر (اختیاری — برای دیپلوی مستقیم روی API کلودفلر؛ خالی = ذخیره در تنظیمات پنل)</label>
+          <input type="password" id="plCfToken" dir="ltr" placeholder="Cloudflare API Token (اختیاری)">
+        </div>
+        <input type="hidden" id="plSelectedRegion" value="smart">
+        <input type="hidden" id="plSelectedIso" value="DE">
+      </div>
+      <div class="modal-foot">
+        <button class="btn primary" type="button" id="plSubmitBtn" onclick="submitPlacementChange()">${icon('check')} اعمال تغییرات ریجن</button>
+        <button class="btn ghost" type="button" data-act="close-modal" data-modal="placementModal">انصراف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- مودال نمایش QR Code اشتراک -->
+  <div class="modal animated" id="qrModal" role="dialog" aria-modal="true">
+    <div class="modal-card" style="max-width:360px;text-align:center;">
+      <div class="modal-head">
+        <b>${icon('link')} کیوآر کد اشتراک (QR Code)</b>
+        <button class="icon-btn" type="button" data-act="close-modal" data-modal="qrModal">${icon('close')}</button>
+      </div>
+      <div class="modal-body" style="align-items:center;">
+        <div id="qrCodeBox" style="background:#ffffff;padding:14px;border-radius:14px;display:inline-block;"></div>
+      </div>
+      <div class="modal-foot" style="justify-content:center;">
+        <button class="btn primary" type="button" onclick="downloadAdminQr()">${icon('download')} دانلود تصویر QR</button>
+        <button class="btn ghost" type="button" data-act="close-modal" data-modal="qrModal">بستن</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- راهنمای کامل پنل: دو ثانیه بعد از ورود، با حرکت نرم باز می‌شود -->
+  <div class="modal animated" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="modal-card help-modal">
+      <div class="modal-head">
+        <b id="helpTitle">${icon('shield')} راهنمای پنل و ساخت کانفیگ</b>
+        <button class="icon-btn" type="button" data-act="close-modal" data-modal="helpModal" aria-label="بستن راهنما">${icon('close')}</button>
+      </div>
+
+      <div class="help-tabs" role="tablist" aria-label="بخش‌های راهنما">
+        <button class="help-tab is-active" type="button" role="tab" data-help-tab="quick">شروع سریع</button>
+        <button class="help-tab" type="button" role="tab" data-help-tab="config">ساخت کانفیگ</button>
+        <button class="help-tab" type="button" role="tab" data-help-tab="users">کاربران</button>
+        <button class="help-tab" type="button" role="tab" data-help-tab="scanner">اسکنر</button>
+        <button class="help-tab" type="button" role="tab" data-help-tab="warp">چندلوکیشن و WARP</button>
+        <button class="help-tab" type="button" role="tab" data-help-tab="clients">اتصال کلاینت‌ها</button>
+        <button class="help-tab" type="button" role="tab" data-help-tab="fix">عیب‌یابی</button>
+      </div>
+
+      <div class="help-body">
+        <!-- شروع سریع -->
+        <section class="help-pane is-active" data-help-pane="quick">
+          <p class="help-lead">سلام! این پنل مغز متفکر سرویس توست: از همین‌جا کاربر می‌سازی، نود و آدرس می‌سازی و ساب‌لینک تحویل می‌دهی. نگران نباش، همه‌چیز در سه قدم ساده راه می‌افتد.</p>
+          <div class="help-grid">
+            <div class="help-card">
+              <h4>${icon('bolt')} سه قدم تا اولین اتصال</h4>
+              <ol>
+                <li>تب <b>کاربران</b> را باز کن و دکمهٔ <b>ایجاد کاربر جدید</b> را بزن.</li>
+                <li>یک نام، حجم و مدت اعتبار بده؛ بقیهٔ گزینه‌ها را دست نزن و <b>ساخت کاربر</b> را بزن.</li>
+                <li>روی کارت کاربر دکمهٔ <b>کپی ساب</b> را بزن و آدرس را در کلاینت وارد کن.</li>
+              </ol>
+            </div>
+            <div class="help-card">
+              <h4>${icon('link')} ساب‌لینک اصلی مدیر</h4>
+              <ul>
+                <li>دکمهٔ <b>کپی ساب اصلی</b> در تب کاربران، ساب کامل پنل را کپی می‌کند.</li>
+                <li>این ساب همیشه <b>۴۰۰ نود</b> دارد: VLESS، Trojan، xHTTP، Shadowsocks، WARP و MASQUE.</li>
+                <li>برای تست موتور و مقایسهٔ سرعت‌ها بهترین مرجع همین ساب است.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('lock')} امنیت اولیه</h4>
+              <ul>
+                <li>از دکمهٔ کلید در هدر، <b>رمز مدیر</b> را به یک رمز قوی تغییر بده.</li>
+                <li>مسیر پنل اختصاصی است؛ آن را در اختیار کسی که نباید پنل را ببیند نگذار.</li>
+                <li>هر کاربر باید شناسهٔ خودش را داشته باشد؛ شناسهٔ یک کاربر را برای دیگری نده.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="help-note"><b>نکته:</b> هر زمان خواستی این راهنما را دوباره ببینی، روی آیکون سپر کنار دکمهٔ خروج در هدر بزن.</div>
+        </section>
+
+        <!-- ساخت کانفیگ -->
+        <section class="help-pane" data-help-pane="config">
+          <p class="help-lead">وقتی کاربر را می‌سازی یا ویرایش می‌کنی، یک فرم چندتبی باز می‌شود. هر تب یک خانوادهٔ تنظیمات است؛ همهٔ آن‌ها با توضیح کنارشان آمده‌اند و لازم نیست همه را پر کنی. پیش‌فرض‌ها انتخاب‌های خوبی هستند.</p>
+          <div class="help-grid">
+            <div class="help-card">
+              <h4>${icon('layers')} پروتکل‌ها</h4>
+              <ul>
+                <li><b>VLESS:</b> پروتکل اصلی و سازگارترین گزینه؛ همیشه روشن بماند.</li>
+                <li><b>Trojan:</b> روی شبکه‌هایی که VLESS را محدود می‌کنند، شانس دوم است.</li>
+                <li><b>xHTTP:</b> ترنسپورت جدیدتر برای دور زدن محدودیت شدید؛ کمی سنگین‌تر است.</li>
+                <li><b>Shadowsocks:</b> سبک و سریع؛ فرگمنت روی آن اعمال نمی‌شود.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('server')} آدرس، پورت و مسیر</h4>
+              <ul>
+                <li><b>پورت‌ها:</b> چند پورت را با کاما بنویس (مثلاً 443,2053,8443) تا اگر یکی بسته بود بقیه کار کنند.</li>
+                <li><b>آدرس‌های دستی:</b> هر خط یک آدرس؛ قالب‌های پذیرفته‌شده در همان کادر توضیح داده شده است.</li>
+                <li><b>دامنه‌های SNI و Host:</b> اگر دامنه‌ای داری که به همین ورکر وصل است، اینجا بگذار تا نودها بین آن‌ها بچرخند.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('signal')} دور زدن فیلترینگ</h4>
+              <ul>
+                <li><b>فرگمنت:</b> بستهٔ TLS را تکه‌تکه می‌کند تا اثر انگشت اتصال عادی نباشد.</li>
+                <li><b>ECH:</b> نام دامنه را از دید شنودکننده پنهان می‌کند و به DNS از نوع DoH نیاز دارد.</li>
+                <li><b>پریست فرگمنت:</b> اگر مطمئن نیستی، پریست پیشنهادی را انتخاب کن؛ بهترین نتیجه با تست به دست می‌آید.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('sanctions')} مسیر خروج</h4>
+              <ul>
+                <li><b>تحریم‌شکن:</b> ترافیک را از یک آدرس بیرون از ایران خارج می‌کند تا سرویس‌های مسدود باز شوند.</li>
+                <li><b>پروکسی خروجی:</b> اگر socks5 یا http داری، اینجا بده تا خروجی از آن برود.</li>
+                <li><b>منطقهٔ خروج:</b> کشور خروجی را انتخاب کن؛ روی برخی سایت‌ها (بانک، استریم) اثر دارد.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('radar')} پریست‌ها</h4>
+              <ul>
+                <li><b>ایران سریع:</b> برای استفادهٔ روزمره در ایران؛ تعادل خوبی بین سرعت و پایداری دارد.</li>
+                <li><b>پرقدرت:</b> برای شبکه‌های سخت‌گیرتر؛ کمی سنگین‌تر است.</li>
+                <li>پریست فقط فرم را پر می‌کند؛ بعد از آن می‌توانی هر فیلدی را دستی عوض کنی.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('gauge')} تعداد نود هر کاربر</h4>
+              <ul>
+                <li>عدد نود در ساب همان کاربر تعیین می‌کند چند نود ساخته شود.</li>
+                <li>صفر یعنی سقف ندارد و همهٔ آدرس‌های زنده استفاده می‌شوند.</li>
+                <li>برای گوشی معمولاً ۳۰ تا ۶۰ نود کافی است؛ بیشتر از آن فقط لیست را شلوغ می‌کند.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="help-note"><b>هشدارهای هوشمند:</b> اگر ترکیبی از تنظیمات با هم جور نباشد (مثلاً ECH بدون DNS امن)، پنل کنار فرم به تو می‌گوید.</div>
+        </section>
+
+        <!-- کاربران -->
+        <section class="help-pane" data-help-pane="users">
+          <p class="help-lead">قلب روزمرهٔ پنل همین‌جاست: هر کارت یک کاربر است با مصرف، انقضا و دسترسی‌های سریع.</p>
+          <div class="help-grid">
+            <div class="help-card">
+              <h4>${icon('users')} کارت کاربر</h4>
+              <ul>
+                <li><b>کپی ساب:</b> لینک اختصاصی همین کاربر.</li>
+                <li><b>صفحهٔ وضعیت:</b> صفحهٔ قابل ارسال به کاربر با راهنمای اتصال و دکمه‌های دانلود.</li>
+                <li><b>ویرایش:</b> همهٔ تنظیمات موتور برای همان کاربر.</li>
+                <li><b>ریست مصرف:</b> شمارندهٔ حجم را صفر می‌کند؛ تاریخ انقضا دست نمی‌خورد.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('layers')} لینک‌های آماده</h4>
+              <ul>
+                <li><b>Clash:</b> همان ساب با خروجی مناسب Mihomo و Clash.</li>
+                <li><b>Singbox:</b> خروجی JSON برای Hiddify و sing-box.</li>
+                <li><b>دامنه:</b> فقط نودهای دامنه‌محور، مناسب وقتی آی‌پی خام مشکل دارد.</li>
+                <li><b>IPv6 همراه اول:</b> نسخهٔ IPv6 که در شبکهٔ همراه اول عملکرد بهتری دارد.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('gauge')} کنترل و پایش</h4>
+              <ul>
+                <li><b>تست نود:</b> نودهای کاربر به‌صورت زنده تست می‌شوند و نتیجه همان‌جا می‌آید.</li>
+                <li><b>حجم و انقضا:</b> صفر یعنی نامحدود یا بدون تاریخ انقضا.</li>
+                <li><b>غیرفعال کردن:</b> کاربری که سقف حجمش تمام شود اجازهٔ اتصال ندارد.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="help-note"><b>یادت باشد:</b> بعد از هر تغییر در تنظیمات یک کاربر، به او بگو در کلاینت «بروزرسانی ساب» بزند تا نودهای تازه بیاید.</div>
+        </section>
+
+        <!-- اسکنر -->
+        <section class="help-pane" data-help-pane="scanner">
+          <p class="help-lead">اسکنر کارخانهٔ آدرس‌های خوب است: آی‌پی‌ها را تست می‌کند و هر چه واقعاً جواب بدهد به فهرست نودها اضافه می‌کند.</p>
+          <div class="help-grid">
+            <div class="help-card">
+              <h4>${icon('radar')} چه چیزی اسکن می‌شود</h4>
+              <ul>
+                <li><b>آدرس و دامنه:</b> منابع آنلاین و آی‌پی‌های تازهٔ لبه را می‌خواند.</li>
+                <li><b>پروکسی:</b> پروکسی‌های کشوری را پیدا می‌کند تا مسیر خروج داشته باشی.</li>
+                <li><b>دستی:</b> هر آدرسی که خودت در کادر بگذاری تست می‌شود.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('filter')} انتخاب‌ها</h4>
+              <ul>
+                <li><b>کشور:</b> خروجی از همان کشور انتخاب شود.</li>
+                <li><b>تعداد:</b> چند مورد برتر نگه داشته شود.</li>
+                <li><b>خانوادهٔ آدرس:</b> IPv4، IPv6 یا هر دو.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('check')} اعمال نتیجه</h4>
+              <ul>
+                <li>نتایج تست فقط نمایش داده می‌شوند؛ تا <b>اعمال</b> را نزنی چیزی ذخیره نمی‌شود.</li>
+                <li>اعمال روی «آدرس‌های دستی» یا «پروکسی خروجی» انجام می‌شود.</li>
+                <li>می‌توانی نتیجه را برای یک کاربر خاص هم ذخیره کنی.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="help-note"><b>تجربهٔ عملی:</b> اگر سرعت افت کرد، اول یک اسکن تازه بگیر و بعد ساب را بروزرسانی کن؛ معمولاً مشکل از آی‌پی اشباع‌شده است.</div>
+        </section>
+
+        <!-- چندلوکیشن و WARP -->
+        <section class="help-pane" data-help-pane="warp">
+          <p class="help-lead">اینجا آدرس‌های آمادهٔ کشور‌به‌کشور و نودهای WARP را می‌بینی؛ همین تب برای کارهای حرفه‌ای بیشترین کاربرد را دارد.</p>
+          <div class="help-grid">
+            <div class="help-card">
+              <h4>${icon('globe')} ساب هر کشور</h4>
+              <ul>
+                <li>هر کارت یک کشور است؛ دکمهٔ کپی، ساب همان کشور را می‌دهد.</li>
+                <li>آی‌پی تصادفی تازه، آی‌پی خروجی همان کشور را عوض می‌کند.</li>
+                <li>نسخهٔ IPv6 برای شبکه‌هایی که IPv4 را محدود می‌کنند مفید است.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('warp')} خانوادهٔ WARP</h4>
+              <ul>
+                <li><b>WARP:</b> اتصال رایگان کلادفلر برای دسترسی به سرویس‌های عمومی.</li>
+                <li><b>WARP PRO:</b> با کلید لایسنس، پهنای باند و کیفیت بالاتر.</li>
+                <li><b>چندلوکیشن:</b> چند لبهٔ مختلف برای انتخاب دستی در کلاینت.</li>
+                <li><b>MASQUE:</b> نسخهٔ HTTP/3 روی CONNECT-IP؛ فقط Mihomo و Clash.Meta و فورک Hiddify آن را می‌فهمند.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('bolt')} امنزیا و پروفایل‌ها</h4>
+              <ul>
+                <li><b>AmneziaWG:</b> بسته‌های فریبنده برای عبور از DPI؛ نسخهٔ ۳ کامل‌ترین است.</li>
+                <li><b>پروفایل‌های تنظیم:</b> چند نسخه با MTU و DNS مختلف برای تست در اپراتور.</li>
+                <li>کلید و آی‌پی هر نود در پنل پنهان است؛ فقط دکمه‌های کپی و دانلود را ببین.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('zip')} اندپوینت WARP</h4>
+              <ul>
+                <li>یک آدرس برای همهٔ فرمت‌ها: <span class="help-kbd">/warp/شناسه</span></li>
+                <li>خودش از روی کلاینت تشخیص می‌دهد YAML، JSON یا base64 بدهد.</li>
+                <li>برای گرفتن همهٔ فایل‌ها با هم، دکمهٔ ZIP را بزن.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="help-note"><b>نکته:</b> اگر WARP وصل نشد، اول فایل .conf را در اپلیکیشن رسمی تست کن؛ اگر آنجا هم وصل نشد، مشکل از شبکهٔ اپراتور است نه پنل.</div>
+        </section>
+
+        <!-- اتصال کلاینت‌ها -->
+        <section class="help-pane" data-help-pane="clients">
+          <p class="help-lead">ساب‌لینک یک آدرس است که کلاینت آن را می‌خواند و نودها را خودکار می‌سازد. فرمت درست، نصف راه است.</p>
+          <div class="help-grid">
+            <div class="help-card">
+              <h4>${icon('link')} آدرس اصلی</h4>
+              <ul>
+                <li>ساختار: <span class="help-kbd">/sub/شناسه</span> که شناسه همان UUID کاربر است.</li>
+                <li>این آدرس خودش فرمت مناسب کلاینت را انتخاب می‌کند.</li>
+                <li>لینک را کامل کپی کن؛ حتی یک حرف کم، ساب را خراب می‌کند.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('terminal')} پارامترهای پرکاربرد</h4>
+              <ul>
+                <li><span class="help-kbd">?target=clash</span> خروجی Mihomo</li>
+                <li><span class="help-kbd">?target=singbox</span> خروجی sing-box</li>
+                <li><span class="help-kbd">?target=raw</span> فهرست خام لینک‌ها</li>
+                <li><span class="help-kbd">?limit=80</span> تعداد نود این دریافت</li>
+                <li><span class="help-kbd">?country=DE</span> ساب اختصاصی یک کشور</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('globe')} کدام کلاینت؟</h4>
+              <ul>
+                <li><b>Hiddify:</b> ساب معمولی را وارد کن؛ JSON و YAML را هم می‌خواند.</li>
+                <li><b>v2rayNG:</b> ساب معمولی یا base64.</li>
+                <li><b>Clash Verge / FlClash / Stash:</b> دکمهٔ Clash یا <span class="help-kbd">?target=clash</span>.</li>
+                <li><b>Shadowrocket / Streisand:</b> ساب معمولی یا base64.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('refresh')} بروزرسانی</h4>
+              <ul>
+                <li>در کلاینت گزینهٔ بروزرسانی خودکار را روی ۶ تا ۱۲ ساعت بگذار.</li>
+                <li>اگر نودها عوض شدند، یک‌بار دستی بروزرسانی کن.</li>
+                <li>بعضی کلاینت‌ها کش می‌کنند؛ اگر تغییری ندیدی کلاینت را ببند و باز کن.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="help-note"><b>اگر ساب خالی آمد:</b> آدرس را در مرورگر باز کن. اگر جواب داد مشکل از کلاینت است؛ اگر جواب نداد لینک یا شناسه را چک کن.</div>
+        </section>
+
+        <!-- عیب‌یابی -->
+        <section class="help-pane" data-help-pane="fix">
+          <p class="help-lead">هر چیزی که خراب شد، اول آرام باش: بیشتر مشکلات با یکی از این چند کار حل می‌شود.</p>
+          <div class="help-grid">
+            <div class="help-card">
+              <h4>${icon('stop')} ساب در کلاینت وارد نمی‌شود</h4>
+              <ul>
+                <li>آدرس را بدون پارامتر اضافه در مرورگر باز کن؛ اگر متن یا فایل آمد، آدرس سالم است.</li>
+                <li>برای کلاینتت فرمت درست را انتخاب کن (Clash، sing-box یا ساب معمولی).</li>
+                <li>اگر کلاینت نسخهٔ قدیمی است، اول بروزرسانی‌اش کن؛ بعضی فرمت‌های تازه را نمی‌فهمد.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('gauge')} کند است یا قطع و وصل می‌شود</h4>
+              <ul>
+                <li>یک آی‌پی یا دامنهٔ دیگر را از اسکنر امتحان کن.</li>
+                <li>پورت را عوض کن؛ بعضی اپراتورها پورت‌های خاص را می‌بندند.</li>
+                <li>اگر فقط بعضی سایت‌ها باز نمی‌شوند، مسئله خروجی است نه اتصال.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('refresh')} خطای ۱۱۰۱ یا خطای اتصال ورکر</h4>
+              <ul>
+                <li>یعنی نسخهٔ مستقر با بایندینگ دیتابیس هم‌خوان نیست.</li>
+                <li>کافی است نسخه را دوباره مستقر کنی؛ دادهٔ کاربران در D1 محفوظ می‌ماند.</li>
+                <li>بعد از استقرار چند ثانیه صبر کن و صفحه را دوباره باز کن.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>${icon('power')} بازگرداندن تنظیمات</h4>
+              <ul>
+                <li>دکمهٔ <b>قرمز چرخش</b> در هدر همهٔ تنظیمات کلی را به پیش‌فرض برمی‌گرداند.</li>
+                <li>کاربران، مصرف و تاریخ انقضا دست‌نخورده می‌مانند.</li>
+                <li>بعد از ریست، ساب‌ها را در کلاینت بروزرسانی کن.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="help-note"><b>هنوز گیر کردی؟</b> از دکمهٔ تلگرام در هدر پیام بده و همین متن خطا را بفرست؛ سریع‌تر راهنمایی می‌شوی.</div>
+        </section>
+      </div>
+
+      <div class="help-foot">
+        <button class="btn primary" type="button" data-act="close-modal" data-modal="helpModal">${icon('check')} فهمیدم، شروع می‌کنم</button>
+        <a class="btn ghost" href="${SUPPORT_URL}" target="_blank" rel="noopener">${icon('telegram')} پشتیبانی</a>
+        <label class="help-check"><input type="checkbox" id="helpNoAuto"> دیگر خودکار باز نشود</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- لیست‌های آماده: همهٔ ورودی‌های متنی فرم ساخت کاربر و تنظیمات پیشنهاد آماده دارند -->
+  <datalist id="dlPorts">
+    <option value="443,2053,2087,8443"></option>
+    <option value="443"></option>
+    <option value="8443"></option>
+    <option value="2053,2087,2096"></option>
+    <option value="443,8443"></option>
+    <option value="2053"></option>
+    <option value="2087"></option>
+    <option value="2096"></option>
+  </datalist>
+  <datalist id="dlHttpPorts">
+    <option value="80,8080"></option>
+    <option value="80"></option>
+    <option value="8080"></option>
+    <option value="8080,8880"></option>
+    <option value="2052,2082"></option>
+  </datalist>
+  <datalist id="dlNodeCount">
+    <option value="30"></option><option value="50"></option><option value="80"></option>
+    <option value="100"></option><option value="120"></option><option value="150"></option>
+    <option value="200"></option>
+  </datalist>
+  <datalist id="dlDataLimit">
+    <option value="0"></option><option value="10"></option><option value="30"></option>
+    <option value="50"></option><option value="100"></option><option value="200"></option>
+  </datalist>
+  <datalist id="dlExpireDays">
+    <option value="0"></option><option value="7"></option><option value="15"></option>
+    <option value="30"></option><option value="60"></option><option value="90"></option>
+    <option value="180"></option>
+  </datalist>
+  <datalist id="dlFragmentLen">
+    <option value="100-200"></option><option value="50-100"></option><option value="10-20"></option>
+    <option value="5-10"></option><option value="200-400"></option>
+  </datalist>
+  <datalist id="dlFragmentInt">
+    <option value="10-20"></option><option value="5-10"></option><option value="20-40"></option>
+    <option value="1-3"></option>
+  </datalist>
+  <datalist id="dlFragmentPackets">
+    <option value="tlshello"></option><option value="1-3"></option><option value="1-5"></option>
+  </datalist>
+  <datalist id="dlProxy">
+    <option value="socks5://host:1080"></option>
+    <option value="socks5://user:pass@host:1080"></option>
+    <option value="http://host:8080"></option>
+    <option value="https://host:443"></option>
+  </datalist>
+  <datalist id="dlProxyIp">
+    <option value="example.com:443"></option><option value="1.2.3.4:443"></option>
+    <option value="[2606:4700::1]:443"></option>
+  </datalist>
+  <datalist id="dlYx">
+    <option value="1.2.3.4:443#Node"></option>
+    <option value="[2606:4700::1]:443#IPv6"></option>
+    <option value="example.com:443#Domain"></option>
+    <option value="1.2.3.4:443#A,5.6.7.8:443#B"></option>
+  </datalist>
+  <datalist id="dlCountries">
+    <option value="DE"></option><option value="FR"></option><option value="NL"></option>
+    <option value="US"></option><option value="GB"></option><option value="TR"></option>
+    <option value="JP"></option><option value="KR"></option><option value="SG"></option>
+    <option value="FI"></option><option value="SE"></option><option value="AE"></option>
+  </datalist>
+  <datalist id="dlWarpEndpoint">
+    <option value="162.159.192.1:2408#DE"></option>
+    <option value="188.114.97.1:500#TR"></option>
+    <option value="[2606:4700:d0::a29f:c001]:2408#US"></option>
+    <option value="162.159.192.1:2408#DE,188.114.97.1:500#TR"></option>
+  </datalist>
+  <datalist id="dlDNS">
+    <option value="https://223.5.5.5/dns-query"></option>
+    <option value="https://1.1.1.1/dns-query"></option>
+    <option value="https://8.8.8.8/dns-query"></option>
+    <option value="https://dns.google/dns-query"></option>
+    <option value="https://cloudflare-dns.com/dns-query"></option>
+  </datalist>
+  <datalist id="dlHomepage">
+    <option value="https://www.cloudflare.com"></option>
+    <option value="https://www.google.com"></option>
+    <option value="https://example.com"></option>
+  </datalist>
+  <datalist id="dlAdminPath">
+    <option value="admin"></option><option value="panel"></option><option value="manage"></option>
+  </datalist>
+  <datalist id="dlTp">
+    <option value=""></option><option value="mili-pass"></option><option value="change-me"></option>
+  </datalist>
+
+  <div class="toast"><div class="toast-body" id="toastBody"></div></div>
+
+<script>
+  var INITIAL_DATA = ${safeInitialJson};
+  var ICO = ${clientIcons};
+  var MAX_USERS = INITIAL_DATA.maxUsersLimit || 3;
+  var ADMIN_PATH = String(INITIAL_DATA.adminPath || '').replace(/^\\/+|\\/+$/g, '');
+  var API_BASE = ADMIN_PATH ? '/' + ADMIN_PATH : '';
+  var state = {
+    config: INITIAL_DATA.config || {},
+    users: INITIAL_DATA.users || [],
+    diagnostics: INITIAL_DATA.diagnostics || {}
+  };
+  var scanResults = [];
+
+  function $(id) { return document.getElementById(id); }
+  function origin() { return window.location.origin; }
+  // دسترسی امن به حافظهٔ مرورگر (در حالت‌های مسدود/خصوصی خطا ندهد)
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  // اگر مرورگر پنجرهٔ تأیید را مسدود کند، به‌جای «هیچ اتفاقی نیفتادن» ادامه بده
+  function ask(msg) {
+    try { var r = window.confirm(msg); if (typeof r === 'boolean') return r; } catch (e) {}
+    return true;
+  }
+  function userKey(u) { return (u && (u.uuid || u.id)) || ''; }
+
+  // نصب اپ: اگر مرورگر رویداد نصب داده باشد پنجرهٔ نصب باز می‌شود، وگرنه
+  // راهنمای همان دستگاه (iOS / اندروید / دسکتاپ) نشان داده می‌شود.
+  function promptInstall() {
+    var p = window.miliInstallPrompt;
+    if (p && typeof p.prompt === 'function') {
+      p.prompt();
+      if (p.userChoice && p.userChoice.then) {
+        p.userChoice.then(function() { window.miliInstallPrompt = null; });
+      }
+      return;
+    }
+    var standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+    if (standalone || (window.navigator && window.navigator.standalone)) {
+      showToast('برنامه از قبل نصب شده و در حالت مستقل اجرا می‌شود', 'ok');
+      return;
+    }
+    var ua = String((window.navigator && window.navigator.userAgent) || '');
+    var isIos = ua.indexOf('iPhone') > -1 || ua.indexOf('iPad') > -1 || ua.indexOf('iPod') > -1;
+    var isAndroid = ua.indexOf('Android') > -1;
+    if (isIos) showToast('در سافاری: دکمهٔ اشتراک‌گذاری ← Add to Home Screen', 'ok');
+    else if (isAndroid) showToast('در کروم: منوی سه‌نقطه ← Install app / افزودن به صفحهٔ اصلی', 'ok');
+    else showToast('در کروم یا اج: آیکون نصب در نوار آدرس ← Install', 'ok');
+  }
+
+  function showToast(text, kind) {
+    var t = $('toastBody');
+    t.textContent = text;
+    t.className = 'toast-body show ' + (kind || '');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function() { t.className = 'toast-body ' + (kind || ''); }, 2800);
+  }
+
+  function copyText(text, okMsg) {
+    var done = function() { showToast(okMsg || 'در حافظه کپی شد', 'ok'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function() { legacyCopy(text, done); });
+    } else {
+      legacyCopy(text, done);
+    }
+  }
+  function legacyCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { showToast('کپی ناموفق بود', 'err'); }
+    document.body.removeChild(ta);
+  }
+
+  function api(path, options) {
+    var opts = options || {};
+    opts.headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+    return fetch(API_BASE + path, opts).then(function(res) {
+      return res.json().catch(function() { return { success: false, message: 'پاسخ نامعتبر از سرور' }; })
+        .then(function(data) { data._status = res.status; return data; });
+    });
+  }
+
+  function fmtGb(bytes) { return (Number(bytes || 0) / 1073741824).toFixed(2); }
+  function fmtDate(ms) {
+    if (!ms) return t('card.noExpiry');
+    try { return new Date(ms).toLocaleDateString('fa-IR'); } catch (e) { return '—'; }
+  }
+
+  function activeProtocols() {
+    var c = state.config || {};
+    var list = [];
+    list.push('VLESS');
+    if (c.es === 'yes') list.push('SS');
+    if (c.et === 'yes') list.push('Trojan');
+    if (c.ex === 'yes') list.push('xHTTP');
+    if (c.ech === 'yes') list.push('ECH');
+    return list;
+  }
+
+  function showPanel(name) {
+    document.querySelectorAll('.panel').forEach(function(p) {
+      p.classList.toggle('is-active', p.getAttribute('data-panel') === name);
+    });
+    document.querySelectorAll('.tab[data-tab]').forEach(function(b) {
+      b.classList.toggle('is-active', b.getAttribute('data-tab') === name);
+    });
+    document.querySelectorAll('.drawer-item[data-tab]').forEach(function(b) {
+      b.classList.toggle('is-active', b.getAttribute('data-tab') === name);
+    });
+    toggleDrawer(false);
+    if (history.replaceState) history.replaceState(null, '', '#' + name);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // کشوی منوی موبایل: باز/بسته شدن با انیمیشن به سمت پایین
+  function toggleDrawer(open) {
+    var drawer = $('navDrawer');
+    var backdrop = $('drawerBackdrop');
+    if (!drawer) return;
+    var next = open === undefined ? !drawer.classList.contains('is-open') : !!open;
+    drawer.classList.toggle('is-open', next);
+    drawer.setAttribute('aria-hidden', next ? 'false' : 'true');
+    if (backdrop) backdrop.classList.toggle('is-open', next);
+    var btn = document.querySelector('[data-act="toggle-drawer"]');
+    if (btn) btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+    document.body.style.overflow = next ? 'hidden' : '';
+  }
+
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') toggleDrawer(false);
+  });
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 820) toggleDrawer(false);
+  });
+
+  function renderMetrics() {
+    var users = state.users || [];
+    var totalBytes = users.reduce(function(a, u) { return a + Number(u.usedBytes || 0); }, 0);
+    $('mUsers').innerHTML = users.length + ' <small>/ ' + MAX_USERS + '</small>';
+    $('mUsersFoot').textContent = users.length >= MAX_USERS ? 'سقف کاربران تکمیل است' : (MAX_USERS - users.length) + ' ظرفیت آزاد';
+    $('mTraffic').innerHTML = fmtGb(totalBytes) + ' <small>GB</small>';
+    $('mIps').innerHTML = (state.diagnostics.healthyCfIps || 0) + ' <small>نود</small>';
+    $('mProto').textContent = activeProtocols().join(' + ');
+
+    var storage = state.diagnostics.storageMode || (state.diagnostics.d1Enabled ? 'D1' : 'Memory');
+    $('kvStorage').textContent = storage;
+    $('kvBinding').textContent = state.diagnostics.d1BindingName || '—';
+    $('kvPath').textContent = ADMIN_PATH ? '/' + ADMIN_PATH.slice(0, 6) + '…' + ADMIN_PATH.slice(-4) : '—';
+  }
+
+  function renderUsers() {
+    var grid = $('usersGrid');
+    var allUsersList = state.users || [];
+    var q = ($('zeusSearchInput') && $('zeusSearchInput').value || '').trim().toLowerCase();
+    var users = q ? allUsersList.filter(function(u) {
+      return String(u.username || '').toLowerCase().indexOf(q) > -1 || String(u.uuid || '').toLowerCase().indexOf(q) > -1;
+    }) : allUsersList;
+    grid.innerHTML = '';
+    $('usersEmpty').style.display = users.length ? 'none' : 'block';
+    users.forEach(function(u, idx) {
+      var used = Number(u.usedBytes || 0);
+      var limitGb = Number(u.dataLimitGb || 0);
+      var pct = limitGb > 0 ? Math.min(100, Math.round((used / (limitGb * 1073741824)) * 100)) : 100;
+      var base = origin() + '/sub/' + userKey(u);
+      var statusUrl = origin() + '/status/' + userKey(u);
+      var card = document.createElement('div');
+      card.className = 'user-card zeus-row';
+      var nodeCount = Number(u.subNodeCount || 0);
+      var key = userKey(u);
+      var uCfg = u.config || state.config || {};
+      var uProtos = [];
+      if (uCfg.ev !== 'no') uProtos.push('VLESS');
+      if (uCfg.et === 'yes') uProtos.push('Trojan');
+      if (uCfg.ex === 'yes') uProtos.push('xHTTP');
+      if (uCfg.es === 'yes') uProtos.push('SS');
+      if (uCfg.ech === 'yes') uProtos.push('ECH');
+      var regCode = String(uCfg.wk || uCfg.sbRegion || 'DE').toLowerCase();
+      var flagSpan = /^[a-z]{2}$/.test(regCode) && regCode !== 'cf'
+        ? '<span class="fi fi-' + regCode + '" style="border-radius:2px;"></span> ' + regCode.toUpperCase()
+        : 'CF';
+
+      card.innerHTML = [
+        '<div class="z-col-info">',
+          '<div style="display:flex;align-items:center;gap:6px;">',
+            '<span class="pill ' + (u.enabled ? 'on' : 'off') + '">' + (u.enabled ? t('card.active') : t('card.inactive')) + '</span>',
+            '<span class="tag on mono">' + flagSpan + '</span>',
+          '</div>',
+          '<div class="user-name" style="margin-top:2px;">' + (u.username || ('کاربر ' + (idx + 1))) + '</div>',
+          '<div class="user-uuid">/' + 'sub/' + key.slice(0, 12) + '…</div>',
+        '</div>',
+        '<div class="z-ops-grid">',
+          '<button class="z-op-btn edit" type="button" data-act="edit-user" data-id="' + u.id + '" title="ویرایش کامل کاربر">' + ICO.settings + '</button>',
+          '<button class="z-op-btn test" type="button" data-act="test-nodes" data-user="' + key + '" title="تست زنده نودهای کاربر">' + ICO.radar + '</button>',
+          '<button class="z-op-btn reset" type="button" data-act="reset-user" data-id="' + u.id + '" title="ریست حجم مصرفی">' + ICO.refresh + '</button>',
+          '<button class="z-op-btn del" type="button" data-act="delete-user" data-id="' + u.id + '" title="حذف کاربر">' + ICO.trash + '</button>',
+        '</div>',
+        '<div class="user-tags" style="justify-content:center;margin:0;">' +
+          uProtos.map(function(p) { return '<span class="tag on">' + p + '</span>'; }).join('') +
+          (uCfg.sb === 'yes' ? '<span class="tag on" title="تحریم‌شکن فعال">' + ICO.sanctions + ' تحریم‌شکن</span>' : '') +
+          (uCfg.warp === 'yes' || uCfg.warpPro === 'yes' ? '<span class="tag on">WARP v' + (uCfg.awgv || '3') + '</span>' : '') +
+        '</div>',
+        '<div class="z-subs-col">',
+          '<div class="z-sub-row">',
+            '<a class="z-sub-btn status" href="' + statusUrl + '" target="_blank" rel="noopener">' + ICO.external + ' صفحه وضعیت</a>',
+            '<button class="z-sub-btn sub" type="button" data-act="copy" data-url="' + base + '">' + ICO.copy + ' ساب هوشمند</button>',
+            '<button class="z-sub-btn qr" type="button" data-act="open-qr" data-url="' + base + '" title="QR Code">QR</button>',
+          '</div>',
+          '<div class="z-sub-row">',
+            '<button class="z-sub-btn clash" type="button" data-act="copy" data-url="' + base + '?target=clash">' + ICO.layers + ' Clash</button>',
+            '<button class="z-sub-btn sbox" type="button" data-act="copy" data-url="' + base + '?target=singbox">' + ICO.bolt + ' Singbox</button>',
+          '</div>',
+          '<div class="z-sub-row">',
+            '<button class="z-sub-btn extra" type="button" data-act="copy" data-url="' + base + '?set=domain">' + ICO.globe + ' دامنه‌ها</button>',
+            '<button class="z-sub-btn extra" type="button" data-act="copy" data-url="' + base + '?set=ipv6">' + ICO.signal + ' IPv6 همراه اول</button>',
+          '</div>',
+        '</div>',
+        '<div style="width:100%;max-width:140px;margin:0 auto;">',
+          '<div class="usage" style="font-size:0.7rem;"><span class="mono">' + fmtGb(used) + ' GB</span><span class="mono">' + (limitGb > 0 ? limitGb + ' GB' : '∞') + '</span></div>',
+          '<div class="bar"><i style="width:' + Math.max(pct, 4) + '%"></i></div>',
+          '<div style="font-size:0.65rem;color:var(--muted-2);margin-top:2px;">درخواست: ' + Number(u.requestCount || 0) + '</div>',
+        '</div>',
+        '<div style="width:100%;max-width:140px;margin:0 auto;">',
+          '<div class="usage" style="font-size:0.7rem;"><span>' + fmtDate(u.expireAt) + '</span><span>' + (nodeCount ? nodeCount + ' نود' : 'خودکار') + '</span></div>',
+          '<div class="bar"><i style="width:100%;background:linear-gradient(90deg,#10b981,#00ff66);"></i></div>',
+          '<div style="font-size:0.65rem;color:var(--muted-2);margin-top:2px;">سقف متصل: ' + Number(u.ipLimit || 50) + ' دستگاه</div>',
+        '</div>'
+      ].join('');
+      grid.appendChild(card);
+    });
+    // انتخاب کاربر هدف برای نوشتن نتیجهٔ اسکن (yx / s)
+    var targetSel = $('scanUser');
+    if (targetSel) {
+      var current = targetSel.value;
+      targetSel.innerHTML = '<option value="">تنظیمات پیش‌فرض پنل</option>' + users.map(function(u) {
+        return '<option value="' + u.id + '">' + (u.username || u.id) + '</option>';
+      }).join('');
+      targetSel.value = current && users.some(function(u) { return u.id === current; }) ? current : '';
+    }
+    renderMetrics();
+  }
+
+  function renderLocations() {
+    var grid = $('locGrid');
+    if (!grid) return;
+    var base = origin() + '/sub/' + (userKey(state.users[0]) || ADMIN_PATH);
+    var countries = INITIAL_DATA.countrySources || {};
+    var token = userKey(state.users[0]) || '';
+    var ep = origin() + '/warp/' + encodeURIComponent(token);
+    var html = '<div class="loc-card"><div><div class="loc-name">همه لوکیشن‌ها</div><div class="loc-meta">MULTI</div></div>' +
+      '<div class="loc-acts"><button class="loc-act c-copy" type="button" data-act="copy" data-url="' + base + '?country=MULTI" title="کپی ساب" aria-label="کپی ساب">' + ICO.copy + '</button></div></div>' +
+      // وارپ و اپن‌وی‌پی آماده، بدون اسکنر و بدون تنظیم
+      '<div class="loc-card"><div><div class="loc-name">WARP / WARP PRO</div><div class="loc-meta">AmneziaWG + WireGuard · Clash · sing-box · IPv4+IPv6</div></div>' +
+      '<div class="toolbar">' +
+      '<a class="btn sm" href="' + origin() + '/warp/' + encodeURIComponent(token) + '?format=zip" download>' + ICO.zip + ' ZIP همهٔ فرمت‌ها</a>' +
+      '<a class="btn sm ghost" href="' + origin() + '/warp/' + encodeURIComponent(token) + '?format=conf" download>WARP.conf</a>' +
+      '<a class="btn sm ghost" href="' + origin() + '/warp/' + encodeURIComponent(token) + '?format=links" download>links.txt</a>' +
+      '<a class="btn sm ghost" href="' + origin() + '/warp/masque/' + encodeURIComponent(token) + '?format=zip" download>' + ICO.zip + ' ZIP جداگانهٔ MASQUE</a>' +
+      '</div></div>' +
+      // اندپوینت مخصوص WARP: یک آدرس با همهٔ فرمت‌ها
+      '<div class="loc-card ep-card"><div><div class="loc-name">اندپوینت اختصاصی WARP</div><div class="loc-meta">Clash/Mihomo · Hiddify/sing-box · WireGuard · Shadowrocket — هر کاربر توکن خودش را دارد</div></div>' +
+      '<div class="toolbar">' +
+      '<button class="btn sm primary" type="button" data-act="copy" data-url="' + ep + '?format=clash">' + ICO.copy + ' Clash</button>' +
+      '<button class="btn sm ghost" type="button" data-act="copy" data-url="' + ep + '?format=singbox">' + ICO.copy + ' sing-box</button>' +
+      '<button class="btn sm ghost" type="button" data-act="copy" data-url="' + ep + '?format=conf">' + ICO.copy + ' WireGuard</button>' +
+      '<button class="btn sm ghost" type="button" data-act="copy" data-url="' + ep + '?format=base64">' + ICO.copy + ' base64</button>' +
+      '<a class="btn sm ghost" href="' + ep + '?format=zip">' + ICO.zip + ' ZIP</a>' +
+      '</div></div>' +
+      '<div class="loc-card"><div><div class="loc-name">OpenVPN</div><div class="loc-meta">.ovpn · 3 پروفایل تنظیم · ZIP</div></div>' +
+      '<div class="toolbar">' +
+      '<a class="btn sm" href="' + base + '?target=ovpn&format=zip" download>' + ICO.zip + ' ZIP</a>' +
+      '<a class="btn sm ghost" href="' + base + '?target=ovpn" download>.ovpn</a>' +
+      '</div></div>';
+    var vipList = INITIAL_DATA.vipCountries || [];
+    Object.keys(countries).forEach(function(code) {
+      var vip = vipList.indexOf(code) > -1;
+      html += '<div class="loc-card"><div><div class="loc-name">' + countries[code].name + (vip ? ' <span class="tag on">VIP</span>' : '') + '</div><div class="loc-meta">' + code + ' · ' + (vip ? 'منابع ویژه + منابع عادی' : 'منابع منطقه‌ای') + '</div></div>' +
+        '<div class="loc-acts">' +
+        '<button class="loc-act c-copy" type="button" data-act="copy" data-url="' + base + '?country=' + code + '" title="کپی ساب" aria-label="کپی ساب">' + ICO.copy + '</button>' +
+        '<button class="loc-act c-proxy" type="button" data-act="country-proxy" data-code="' + code + '" title="پروکسی → s" aria-label="پروکسی → s">' + ICO.link + '</button>' +
+        '<button class="loc-act c-ip" type="button" data-act="country-ip" data-code="' + code + '" title="آی‌پی → yx" aria-label="آی‌پی → yx">' + ICO.globe + '</button>' +
+        '</div></div>';
+    });
+    grid.innerHTML = html;
+    var locUser = $('locUser');
+    if (locUser) {
+      var current = locUser.value;
+      locUser.innerHTML = '<option value="">تنظیمات پیش‌فرض پنل</option>' + (state.users || []).map(function(u) {
+        return '<option value="' + u.id + '">' + (u.username || u.id) + '</option>';
+      }).join('');
+      locUser.value = current && (state.users || []).some(function(u) { return u.id === current; }) ? current : '';
+    }
+  }
+
+  // افزودن تصادفی آی‌پی سالم همان منطقه به نودهای ترجیحی (yx) کاربر انتخابی
+  function locRandomIp(ipv6) {
+    var code = $('locRegion') ? $('locRegion').value : 'DE';
+    var status = $('locStatus');
+    var userId = $('locUser') ? $('locUser').value : '';
+    if (status) { status.className = 'scan-status'; status.textContent = 'در حال خواندن منابع آدرس و تست اتصال برای ' + code + '...'; }
+    var send = function(payload) {
+      return fetch(origin() + '/api/scanner/fetch-and-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function(res) { return res.json(); });
+    };
+    send({ mode: ipv6 ? 'ipv6' : 'ipv4', country: code, limit: 8 })
+      .then(function(data) {
+        if (!data.success || !data.proxies || !data.proxies.length) {
+          if (status) { status.className = 'scan-status err'; status.textContent = data.message || 'آی‌پی سالمی پیدا نشد.'; }
+          return null;
+        }
+        var items = data.proxies.map(function(p) { return { ip: p.ip, port: p.port, name: p.ip }; });
+        return fetch(origin() + '/api/scanner/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Mili-Admin': '1' },
+          body: JSON.stringify({ target: 'yx', items: items, userId: userId })
+        }).then(function(res) { return res.json(); }).then(function(applied) {
+          if (status) {
+            status.className = applied.success ? 'scan-status' : 'scan-status err';
+            status.textContent = applied.message || (applied.success ? 'آی‌پی‌ها اضافه شدند' : 'افزودن آی‌پی ناموفق بود');
+          }
+          if (applied.success) reloadUsers();
+          return applied;
+        });
+      })
+      .catch(function() {
+        if (status) { status.className = 'scan-status err'; status.textContent = 'خطای شبکه در افزودن آی‌پی تصادفی.'; }
+      });
+  }
+
+  function locCopyRegion() {
+    var code = $('locRegion') ? $('locRegion').value : 'DE';
+    var user = (state.users || []).filter(function(u) { return u.id === ($('locUser') ? $('locUser').value : ''); })[0] || state.users[0];
+    var token = userKey(user) || ADMIN_PATH;
+    copyText(origin() + '/sub/' + token + '?country=' + code, 'ساب منطقهٔ ' + code + ' کپی شد');
+  }
+
+  function fillSettings() {
+    var c = state.config || {};
+    document.querySelectorAll('.switch input[data-key]').forEach(function(input) {
+      input.checked = c[input.getAttribute('data-key')] === 'yes';
+    });
+    document.querySelectorAll('input[data-key], select[data-key]').forEach(function(input) {
+      if (input.type === 'checkbox') return;
+      var key = input.getAttribute('data-key');
+      var val = c[key];
+      if (key === 'ipRotation') {
+        var map = { 0: 'off', '0': 'off', 5: '5m', 15: '15m', 30: '30m', 60: '1h', 1440: '24h' };
+        val = (typeof val === 'string' && isNaN(Number(val))) ? val : (map[val] || 'off');
+      }
+      if (val === undefined || val === null) val = '';
+      input.value = String(val);
+    });
+    var pathView = $('adminPathView');
+    if (pathView) pathView.value = ADMIN_PATH ? '/' + ADMIN_PATH : '—';
+    var dnsSel = $('dnsPreset');
+    if (dnsSel) {
+      var presets = INITIAL_DATA.dnsPresets || [];
+      var match = presets.filter(function(d) { return d.value === c.customDNS; })[0];
+      dnsSel.value = match ? c.customDNS : (c.customDNS ? 'custom' : (presets[0] ? presets[0].value : 'custom'));
+    }
+  }
+
+  var LANG = lsGet('mili_lang') === 'en' ? 'en' : 'fa';
+  function t(key) {
+    var dict = (INITIAL_DATA.i18n || {})[LANG] || (INITIAL_DATA.i18n || {}).fa || {};
+    return dict[key] || key;
+  }
+  function updateThemeLabel() {
+    var btn = $('themeBtn');
+    if (!btn) return;
+    var light = document.body.classList.contains('light-mode');
+    var text = LANG === 'en' ? (light ? 'Dark mode' : 'Light mode') : (light ? 'حالت شب' : 'حالت روز');
+    btn.setAttribute('title', text);
+    btn.setAttribute('aria-label', text);
+    btn.innerHTML = light ? ICO.moon : ICO.sun;
+  }
+  function applyLanguage() {
+    document.documentElement.lang = LANG;
+    document.documentElement.dir = LANG === 'en' ? 'ltr' : 'rtl';
+    document.querySelectorAll('[data-i18n]').forEach(function(el) {
+      var key = el.getAttribute('data-i18n');
+      var text = t(key);
+      if (text) el.textContent = text;
+    });
+    updateThemeLabel();
+  }
+  function toggleTheme() {
+    var light = document.body.classList.toggle('light-mode');
+    lsSet('mili_theme', light ? 'light' : 'dark');
+    updateThemeLabel();
+  }
+  function toggleLang() {
+    LANG = LANG === 'fa' ? 'en' : 'fa';
+    lsSet('mili_lang', LANG);
+    applyLanguage();
+    renderUsers();
+    renderLocations();
+    if (typeof scanResults !== 'undefined' && scanResults.length) renderScanRows(scanResults);
+  }
+
+  // هشدار هوشمند تداخل تنظیمات
+  function detectConflicts(c) {
+    var out = [];
+    if (c.es === 'yes' && c.frag === 'yes') out.push('Shadowsocks از فرگمنت پشتیبانی نمی‌کند؛ نودهای SS بدون fragment ساخته می‌شوند (مجاز است).');
+    if (c.ech === 'yes' && !/^https:\\/\\//i.test(String(c.customDNS || ''))) out.push('ECH به یک DNS از نوع DoH (https://) نیاز دارد.');
+    if (c.ech === 'yes' && c.dkby === 'no') out.push('با فعال بودن ECH، پورت‌های HTTP خودکار حذف می‌شوند.');
+    if (c.frag === 'yes' && (!c.fragmentPreset || c.fragmentPreset === 'off')) out.push('فرگمنت روشن است اما پریست روی «غیرفعال» است؛ پارامتری ساخته نمی‌شود.');
+    if (c.epi === 'no' && c.epd === 'no' && !String(c.yx || '').trim()) out.push('همه منابع آدرس خاموش‌اند؛ سابلینک فقط از هاست ورکر ساخته می‌شود.');
+    if (c.ev === 'no' && c.et === 'no' && c.ex === 'no' && c.es === 'no') out.push('هیچ پروتکلی روشن نیست؛ هسته به‌ناچار VLESS را فعال می‌کند.');
+    if (String(c.s || '').trim() && !/^(socks5?|https?):\\/\\//i.test(String(c.s).trim())) out.push('آدرس پروکسی خروجی باید با socks5:// یا http:// شروع شود.');
+    if (c.yxURL && c.egi === 'no') out.push('منبع آنلاین آدرس وارد شده اما گزینهٔ «منبع آنلاین آدرس» خاموش است.');
+    var ports = String(c.ports || '').split(/[,\\s]+/).filter(Boolean).map(Number).filter(function(p) { return p >= 1 && p <= 65535; });
+    if (!ports.length) out.push('لیست پورت‌های نود خالی/نامعتبر است؛ از 443 استفاده می‌شود.');
+    if (c.ipRotation && c.ipRotation !== 'off' && !String(c.yx || '').trim()) out.push('چرخش آی‌پی فعال است اما فهرست آدرس‌های دستی خالی است.');
+    if (c.warpPro === 'yes' && !String(c.warpLicense || '').trim()) out.push('WARP پلاس روشن است اما لایسنس آن وارد نشده؛ نود با برچسب «بدون لایسنس» ساخته می‌شود.');
+    return out;
+  }
+  // ------------------------------------------------------------------
+  // فرم ساخت/ویرایش کاربر — همهٔ گزینه‌های موتور
+  // ------------------------------------------------------------------
+  var USER_FORM_SCHEMA = [
+    {
+      id: 'protocols',
+      title: 'پروتکل‌ها',
+      fields: [
+        { key: 'ev', section: 'پروتکل‌های فعال', label: 'VLESS', hint: 'پروتکل اصلی؛ بهتر است روشن بماند', type: 'switch', def: 'yes' },
+        { key: 'et', section: 'پروتکل‌های فعال', label: 'Trojan', type: 'switch', def: 'no' },
+        { key: 'ex', section: 'پروتکل‌های فعال', label: 'xHTTP', type: 'switch', def: 'no' },
+        { key: 'es', section: 'پروتکل‌های فعال', label: 'Shadowsocks', type: 'switch', def: 'no' },
+        { key: 'tp', section: 'تنظیمات پروتکل', label: 'رمز Trojan', type: 'text', def: '', list: 'dlTp', ph: 'خالی = شناسهٔ خودکار کاربر' },
+        { key: 'sspass', section: 'تنظیمات پروتکل', label: 'رمز Shadowsocks', type: 'text', def: '', ph: 'خالی = شناسهٔ خودکار کاربر' },
+        { key: 'jk', section: 'تنظیمات پروتکل', label: 'زنجیرهٔ خانگی', type: 'switch', def: 'no' },
+        { key: 'dkby', section: 'تنظیمات پروتکل', label: 'حذف پورت‌های HTTP', type: 'switch', def: 'no' }
+      ]
+    },
+    {
+      id: 'transport',
+      title: 'امنیت و انتقال',
+      fields: [
+        { key: 'ech', section: 'امنیت', label: 'رمزنگاری ECH', type: 'switch', def: 'no' },
+        { key: 'doh', section: 'امنیت', label: 'DNS رمزنگاری‌شده (DoH)', hint: 'در کانفیگ کلاینت، پرس‌وجوهای DNS از مسیر DoH انجام می‌شود', type: 'switch', def: 'yes' },
+        { key: 'customECHDomain', section: 'امنیت', label: 'دامنهٔ ECH', type: 'select', def: 'cloudflare-ech.com', options: 'echDomains', raw: true },
+        { key: 'customDNS', section: 'امنیت', label: 'سرور DNS رمزنگاری‌شده', type: 'select', def: 'https://223.5.5.5/dns-query', options: 'dnsPresets', raw: true },
+        { key: 'alpn', section: 'امنیت', label: 'پروتکل‌های لایهٔ انتقال (ALPN)', type: 'select', def: '', options: [['', 'خودکار'], ['h2,http/1.1', 'h2 + http/1.1'], ['h3,h2,http/1.1', 'h3 + h2 + http/1.1']] },
+        { key: 'fp', section: 'امنیت', label: 'اثر انگشت TLS', type: 'select', def: 'chrome', options: 'fingerprints' },
+        { key: 'patt', section: 'انتقال و فرگمنت', label: 'مسیر WebSocket', type: 'select', def: '/?ed=2048', options: 'pathPatterns' },
+        { key: 'ports', section: 'انتقال و فرگمنت', label: 'پورت‌های امن (TLS)', type: 'text', def: '443', list: 'dlPorts', ph: '443' },
+        { key: 'httpPorts', section: 'انتقال و فرگمنت', label: 'پورت‌های HTTP', type: 'text', def: '80', list: 'dlHttpPorts', ph: '80 — خالی برای حذف' },
+        { key: 'tcp', section: 'انتقال و فرگمنت', label: 'TCP سریع', hint: 'tcp-concurrent و tcp-fast-open در کانفیگ کلاینت', type: 'switch', def: 'yes' },
+        { key: 'udp', section: 'انتقال و فرگمنت', label: 'عبور UDP', hint: 'نودها UDP را عبور می‌دهند (بازی و تماس)', type: 'switch', def: 'yes' },
+        { key: 'frag', section: 'انتقال و فرگمنت', label: 'فرگمنت TLS', type: 'switch', def: 'yes' },
+        { key: 'fragmentPreset', section: 'انتقال و فرگمنت', label: 'پریست فرگمنت', type: 'select', def: 'mci', options: 'fragmentPresets' },
+        { key: 'fragmentLength', section: 'انتقال و فرگمنت', label: 'طول فرگمنت', type: 'text', def: '100-200', list: 'dlFragmentLen' },
+        { key: 'fragmentInterval', section: 'انتقال و فرگمنت', label: 'فاصلهٔ فرگمنت', type: 'text', def: '10-20', list: 'dlFragmentInt' },
+        { key: 'fragmentPackets', section: 'انتقال و فرگمنت', label: 'نوع بسته‌های فرگمنت', type: 'text', def: 'tlshello', list: 'dlFragmentPackets' }
+      ]
+    },
+    {
+      id: 'addresses',
+      title: 'آدرس‌ها و منطقه',
+      fields: [
+        { key: 'ena', section: 'منابع آدرس', label: 'نود روی آدرس خود پنل', hint: 'آدرس پنل به‌عنوان یکی از نودها (مثل حالت پیش‌فرض کلادفلر)', type: 'switch', def: 'yes' },
+        { key: 'epi', section: 'منابع آدرس', label: 'آی‌پی‌های ثابت کلادفلر', type: 'switch', def: 'yes' },
+        { key: 'epd', section: 'منابع آدرس', label: 'دامنه‌های جایگزین', type: 'switch', def: 'yes' },
+        { key: 'egi', section: 'منابع آدرس', label: 'منبع آنلاین آدرس', type: 'switch', def: 'yes' },
+        { key: 'ipv4', section: 'منابع آدرس', label: 'آدرس‌های IPv4', type: 'switch', def: 'yes' },
+        { key: 'ipv6', section: 'منابع آدرس', label: 'آدرس‌های IPv6', type: 'switch', def: 'yes' },
+        { key: 'ispMobile', section: 'گروه‌های اپراتور', label: 'گروه اپراتور همراه اول', type: 'switch', def: 'yes' },
+        { key: 'ispUnicom', section: 'گروه‌های اپراتور', label: 'گروه اپراتور ایرانسل', type: 'switch', def: 'yes' },
+        { key: 'ispTelecom', section: 'گروه‌های اپراتور', label: 'گروه اپراتور مخابرات', type: 'switch', def: 'yes' },
+        { key: 'region', section: 'منطقه و آدرس‌های دلخواه', label: 'منطقه', type: 'select', def: 'auto', options: 'regions' },
+        { key: 'wk', section: 'منطقه و آدرس‌های دلخواه', label: 'منطقهٔ ورکر', type: 'text', def: '', ph: 'DE / NL / US…' },
+        { key: 'locationNodeCount', section: 'منطقه و آدرس‌های دلخواه', label: 'تعداد نود هر لوکیشن', type: 'number', def: 6, min: 1, max: 40 },
+        { key: 'yx', section: 'آدرس‌های دستی', label: 'آدرس‌های دستی', type: 'textarea', rows: 5, wide: true, def: '', pool: true, ph: ['104.16.0.1:443#آلمان', '104.17.0.1:2053', '1.2.3.4', '[2606:4700::1]:443#آمریکا'].join(String.fromCharCode(10)), hint: 'هر آدرس در یک خط؛ هر قالبی که بخواهید قابل قبول است: <code>آی‌پی</code> · <code>آی‌پی:پورت</code> · <code>آی‌پی:پورت#نام</code> · <code>[آی‌پی نسخهٔ ۶]:پورت#نام</code> · <code>دامنه:پورت</code> — جدا کردن با کاما هم کار می‌کند.' },
+        { key: 'yxURL', section: 'آدرس‌های دستی', label: 'منبع آنلاین آدرس‌ها', type: 'text', wide: true, def: '', list: 'dlYxUrl', ph: 'https://... (چند نشانی را با کاما جدا کنید)' },
+        { key: 'sb', section: 'مسیر خروج', label: 'تحریم‌شکن (خروجی از آدرس واسط)', hint: 'همهٔ نودها از یک آدرس بیرون از ایران خارج می‌شوند تا سرویس‌های مسدود برای آی‌پی ایران باز شوند', type: 'switch', def: 'yes' },
+        { key: 'sbRegion', section: 'مسیر خروج', label: 'منطقهٔ تحریم‌شکن', type: 'select', def: 'DE', options: 'regions' },
+        { key: 'p', section: 'مسیر خروج', label: 'آدرس واسط (ProxyIP)', type: 'text', def: '', list: 'dlProxyIp', ph: 'ProxyIP.DE.example.com:443' },
+        { key: 's', section: 'مسیر خروج', label: 'پروکسی خروجی', type: 'text', def: '', list: 'dlProxy', ph: 'socks5://host:1080' }
+      ]
+    },
+    {
+      id: 'advanced',
+      title: 'پیشرفته و پنل',
+      fields: [
+        { key: 'ae', section: 'دسترسی و مسیر', label: 'اجازهٔ دسترسی به API', type: 'switch', def: 'no' },
+        { key: 'rm', section: 'دسترسی و مسیر', label: 'حالت مسیر', type: 'text', def: '', ph: 'خالی = پیش‌فرض' },
+        { key: 'qj', section: 'دسترسی و مسیر', label: 'قفل آی‌پی', type: 'text', def: '', ph: 'خالی = غیرفعال' },
+        { key: 'yxby', section: 'دسترسی و مسیر', label: 'نادیده‌گرفتن آدرس‌های دستی', type: 'switch', def: 'no' },
+        { key: 'ipRotation', label: 'چرخش آی‌پی', type: 'select', def: 'off', options: [['off', 'غیرفعال'], ['5m', '۵ دقیقه'], ['15m', '۱۵ دقیقه'], ['30m', '۳۰ دقیقه'], ['1h', '۱ ساعت'], ['24h', '۲۴ ساعت']] },
+        { key: 'd', section: 'دسترسی و مسیر', label: 'مسیر اختصاصی کاربر', type: 'text', def: '', list: 'dlAdminPath' },
+        { key: 'homepage', section: 'دسترسی و مسیر', label: 'صفحهٔ استتار', type: 'text', def: '', list: 'dlHomepage' },
+        { key: 'scu', section: 'دسترسی و مسیر', label: 'سرویس تبدیل اشتراک', type: 'text', def: '', list: 'dlScu' },
+        { key: 'pd', section: 'دامنهٔ پنل', label: 'نود با دامنهٔ پنل', type: 'switch', def: 'no' },
+        { key: 'pdCount', section: 'دامنهٔ پنل', label: 'تعداد نود دامنهٔ پنل', type: 'number', def: 2, min: 0, max: 20 },
+        { key: 'sniHosts', section: 'دامنهٔ پنل', label: 'دامنه‌های SNI و Host', type: 'text', def: '', hint: 'کاما بین دامنه‌ها؛ هر دامنه باید به همین ورکر وصل باشد. نودها به ترتیب بین این دامنه‌ها می‌چرخند (خالی = فقط دامنهٔ همین ورکر).' }
+      ]
+    },
+    {
+      id: 'extras',
+      title: 'افزونه‌ها',
+      fields: [
+        { key: 'warp', section: 'WARP', label: 'WARP', type: 'switch', def: 'no' },
+        { key: 'awgv', section: 'WARP', label: 'نسخهٔ امنزیا (AmneziaWG)', hint: 'نسخهٔ ۳ = بسته‌های امضایی I1..I3 و تنظیمات زمانی', type: 'select', def: '3', options: [['3', 'نسخهٔ ۳ (پیشنهادی)'], ['2', 'نسخهٔ ۲'], ['1', 'نسخهٔ ۱ — فقط بسته‌های Junk']] },
+        { key: 'warpPro', section: 'WARP', label: 'WARP پلاس', type: 'switch', def: 'no' },
+        { key: 'warpMl', section: 'WARP', label: 'WARP چندلوکیشن', type: 'switch', def: 'no' },
+        { key: 'warpCount', section: 'WARP', label: 'تعداد WARP', type: 'number', def: 8, min: 1, max: 30 },
+        { key: 'warpMasque', section: 'WARP', label: 'WARP MASQUE (HTTP/3)', type: 'switch', def: 'no' },
+        { key: 'warpMasqueCount', section: 'WARP', label: 'تعداد MASQUE', type: 'number', def: 3, min: 1, max: 6 },
+        { key: 'warpLicense', section: 'WARP', label: 'لایسنس WARP پلاس', type: 'text', def: '' },
+        { key: 'warpEndpoint', section: 'WARP', label: 'نقاط پایانی WARP', type: 'text', def: '', list: 'dlWarpEndpoint' },
+        { key: 'ovpn', section: 'OpenVPN', label: 'OpenVPN', type: 'switch', def: 'no' },
+        { key: 'ovpnCount', section: 'OpenVPN', label: 'تعداد OpenVPN', type: 'number', def: 4, min: 0, max: 24 },
+        { key: 'ovpnCountries', section: 'OpenVPN', label: 'کشورهای OpenVPN', type: 'text', def: '', list: 'dlCountries' },
+        { key: 'ovpnSource', section: 'OpenVPN', label: 'منبع OpenVPN', type: 'text', def: '' }
+      ]
+    }
+  ];
+
+  var formState = { editingId: null, tab: 'basic' };
+  var NL = String.fromCharCode(10);
+  var SEP_RE = new RegExp('[,' + String.fromCharCode(10, 13) + ';،]+');
+
+  function optionHtml(field, current) {
+    var list = field.options;
+    var pairs = [];
+    if (typeof list === 'string') {
+      if (list === 'echDomains') pairs = (INITIAL_DATA.echDomains || []).map(function(d) { return [d, d]; });
+      else if (list === 'dnsPresets') pairs = (INITIAL_DATA.dnsPresets || []).map(function(d) { return [d.value, d.name]; });
+      else if (list === 'fingerprints') pairs = (INITIAL_DATA.fingerprints || []).map(function(f) { return [f.id, f.name]; });
+      else if (list === 'pathPatterns') pairs = (INITIAL_DATA.pathPatterns || []).map(function(p) { return [p.id, p.name]; });
+      else if (list === 'fragmentPresets') pairs = Object.keys(INITIAL_DATA.fragmentPresets || {}).map(function(id) { return [id, INITIAL_DATA.fragmentPresets[id].name || id]; });
+      else if (list === 'regions') {
+        pairs = [['auto', 'خودکار (بدون محدودیت منطقه)'], ['CF', 'مستقیم کلادفلر (CF)']];
+        var srcs = INITIAL_DATA.countrySources || {};
+        Object.keys(srcs).sort().forEach(function(code) { pairs.push([code, srcs[code].name + ' — ' + code]); });
+      }
+    } else if (Array.isArray(list)) {
+      pairs = list;
+    }
+    if (current !== undefined && current !== null && current !== '' && !pairs.some(function(p) { return String(p[0]) === String(current); })) {
+      pairs = pairs.concat([[current, current]]);
+    }
+    return pairs.map(function(p) {
+      return '<option value="' + String(p[0]).replace(/"/g, '&quot;') + '"' + (String(p[0]) === String(current) ? ' selected' : '') + '>' + p[1] + '</option>';
+    }).join('');
+  }
+
+  function isPortNo(value) {
+    var s = String(value || '').trim();
+    if (!s || s.length > 5) return false;
+    for (var i = 0; i < s.length; i++) { if (s.charCodeAt(i) < 48 || s.charCodeAt(i) > 57) return false; }
+    return true;
+  }
+
+  // آدرس‌های دستی: هر خط (یا کاما) یک آدرس با قالب‌های آزاد قابل قبول است
+  function normalizeManualList(text) {
+    var seen = {}, out = [];
+    String(text || '').split(SEP_RE).forEach(function(line) {
+      var item = String(line || '').trim();
+      var scheme = item.indexOf('://');
+      if (scheme > -1) item = item.slice(scheme + 3);
+      var slash = item.indexOf('/');
+      if (slash > -1) item = item.slice(0, slash);
+      item = item.trim();
+      if (!item) return;
+      var name = '';
+      var hash = item.indexOf('#');
+      if (hash > -1) {
+        name = item.slice(hash + 1).trim();
+        item = item.slice(0, hash).trim();
+      }
+      var host = item, port = 443;
+      if (item.charAt(0) === '[') {
+        var close = item.indexOf(']');
+        if (close > 0) {
+          host = item.slice(1, close);
+          var tail = item.slice(close + 1).replace(/^:/, '');
+          if (isPortNo(tail)) port = parseInt(tail, 10);
+        }
+      } else if ((item.match(/:/g) || []).length === 1) {
+        var parts = item.split(':');
+        if (isPortNo(parts[1])) { host = parts[0]; port = parseInt(parts[1], 10); }
+      }
+      host = String(host || '').trim();
+      if (!host || host.split(' ').length > 1) return;
+      if (!(port > 0 && port <= 65535)) port = 443;
+      var key = host + ':' + port;
+      if (seen[key]) return;
+      seen[key] = 1;
+      var label = (name || (host + ':' + port)).replace(/,/g, ' ');
+      out.push((host.indexOf(':') > -1 ? '[' + host + ']' : host) + ':' + port + '#' + label);
+    });
+    return out.join(',');
+  }
+
+  function manualListToLines(text) {
+    return String(text || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean).join(NL);
+  }
+
+  // کنترل «انتخاب تصادفی» برای فیلدهای آی‌پی؛ فهرست از استخر داخلی می‌آید
+  function ipPoolControlHtml(field) {
+    if (!field.pool) return '';
+    var pool = INITIAL_DATA.ipPool || [];
+    var countries = INITIAL_DATA.ipPoolCountries || [];
+    var opts = '<option value="">همه کشورها</option>' + countries.map(function(c) {
+      return '<option value="' + c.cc + '">' + c.name + ' — ' + c.cc + ' (' + c.count + ')</option>';
+    }).join('');
+    var subPath = INITIAL_DATA.ipPoolPath || '/ips';
+    return '<div class="ip-pool" data-pool-for="' + field.key + '">' +
+      '<span class="ip-pool-title">انتخاب تصادفی از استخر ' + pool.length + ' آی‌پی:</span>' +
+      '<input class="ip-pool-count" type="number" min="1" max="64" step="1" value="5" aria-label="تعداد آی‌پی">' +
+      '<select class="ip-pool-country" aria-label="کشور">' + opts + '</select>' +
+      '<button class="btn sm" type="button" data-pool-fill="' + field.key + '">' + ICO.refresh + ' تصادفی</button>' +
+      '<a class="btn sm ghost" href="' + subPath + '" target="_blank" rel="noopener">' + ICO.link + ' ساب لیست</a>' +
+      '<span class="ip-pool-meta">ساب: ' + subPath + '?count=10&amp;country=DE&amp;port=443&amp;label=1</span>' +
+    '</div>';
+  }
+
+  function fieldHtml(field, value) {
+    var id = 'uf_' + field.key;
+    var val = value === undefined || value === null ? field.def : value;
+    var hint = field.hint ? '<span class="field-hint">' + field.hint + '</span>' : '';
+    var wideClass = field.wide ? ' style="grid-column: 1 / -1;"' : '';
+    if (field.type === 'textarea') {
+      var rows = field.rows || 4;
+      return '<div class="field"' + wideClass + '><label>' + field.label + '</label>' +
+        '<textarea id="' + id + '" data-uf="' + field.key + '" rows="' + rows + '" spellcheck="false" dir="ltr" placeholder="' +
+        String(field.ph || '').split(NL).join('&#10;').replace(/"/g, '&quot;') + '">' +
+        manualListToLines(val).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</textarea>' + hint + ipPoolControlHtml(field) + '</div>';
+    }
+    if (field.type === 'switch') {
+      var on = String(val) === 'yes';
+      return '<div class="switch-row"><div class="switch-meta"><div><b>' + field.label + '</b>' + hint + '</div></div>' +
+        '<label class="switch"><input type="checkbox" id="' + id + '" data-uf="' + field.key + '" data-type="switch"' + (on ? ' checked' : '') + '><i></i></label></div>';
+    }
+    if (field.type === 'select') {
+      return '<div class="field"><label>' + field.label + '</label>' +
+        '<select id="' + id + '" data-uf="' + field.key + '">' + optionHtml(field, val) + '</select>' + hint + '</div>';
+    }
+    var attrs = 'type="' + (field.type === 'number' ? 'number' : 'text') + '" id="' + id + '" data-uf="' + field.key + '"';
+    if (field.type === 'number') attrs += ' min="' + (field.min === undefined ? 0 : field.min) + '" max="' + (field.max === undefined ? 999 : field.max) + '" step="1"';
+    if (field.list) attrs += ' list="' + field.list + '"';
+    if (field.ph) attrs += ' placeholder="' + field.ph.replace(/"/g, '&quot;') + '"';
+    return '<div class="field"><label>' + field.label + '</label>' +
+      '<input ' + attrs + ' value="' + String(val === undefined ? '' : val).replace(/"/g, '&quot;') + '">' + hint + ipPoolControlHtml(field) + '</div>';
+  }
+
+  function formPaneHtml(group, cfg) {
+    var html = '', lastSection = null, open = false;
+    group.fields.forEach(function(field) {
+      if (field.section && field.section !== lastSection) {
+        if (open) html += '</div>';
+        html += '<div class="uf-section"><span>' + field.section + '</span><i></i></div><div class="form-grid">';
+        open = true;
+        lastSection = field.section;
+      } else if (!open) {
+        html += '<div class="form-grid">';
+        open = true;
+      }
+      html += fieldHtml(field, cfg[field.key]);
+    });
+    if (open) html += '</div>';
+    return html;
+  }
+
+  function switchUserFormTab(id) {
+    var modal = $('createModal');
+    if (!modal) return;
+    formState.tab = id;
+    modal.querySelectorAll('[data-uf-tab]').forEach(function(b) {
+      var on = b.getAttribute('data-uf-tab') === id;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (on && b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'center' });
+    });
+    modal.querySelectorAll('[data-uf-pane]').forEach(function(p) {
+      p.classList.toggle('is-active', p.getAttribute('data-uf-pane') === id);
+    });
+    var body = $('userFormBody');
+    if (body) body.scrollTop = 0;
+  }
+
+  function renderUserForm(user, presetId) {
+    var body = $('userFormBody');
+    if (!body) return;
+    // برای کاربر جدید، مقادیر از تنظیمات کلی پنل و برای ویرایش از خود کاربر
+    var base = user ? (INITIAL_DATA.defaults || {}) : Object.assign({}, INITIAL_DATA.defaults || {}, state.config || {});
+    var cfg = Object.assign({}, base, (user && user.config) || {});
+    var preset = (INITIAL_DATA.presets || {})[presetId || (user && user.preset) || 'iran-fast'];
+    // در ویرایش، تنظیمات ذخیره‌شدهٔ کاربر باید برنده باشد؛ پریست فقط برای کاربر تازه
+    // یا وقتی خود مدیر پریست را عوض می‌کند اعمال می‌شود (باگ: قبلاً مقادیر پریست
+    // روی تنظیمات ذخیره‌شده می‌نشست و فرم همان تنظیمات پایه را نشان می‌داد).
+    if (preset && preset.configOverrides && (!user || presetId)) cfg = Object.assign({}, cfg, preset.configOverrides);
+    var activeTab = formState.tab || 'basic';
+    var basicHtml = '<div class="uf-section"><span>مشخصات کاربر</span><i></i></div>' +
+      '<div class="form-grid">' +
+      '<div class="field"><label>نام کاربری</label><input type="text" id="uf_username" value="' + String((user && user.username) || '').replace(/"/g, '&quot;') + '" placeholder="مثلاً ali"></div>' +
+      '<div class="field"><label>پریست آماده</label><select id="uf_preset">' + Object.keys(INITIAL_DATA.presets || {}).map(function(k) {
+        var p = INITIAL_DATA.presets[k];
+        return '<option value="' + k + '"' + (k === (presetId || (user && user.preset)) ? ' selected' : '') + '>' + p.title + '</option>';
+      }).join('') + '</select></div>' +
+      '<div class="field"><label>یادداشت</label><input type="text" id="uf_note" value="' + String((user && user.note) || '').replace(/"/g, '&quot;') + '"></div>' +
+      '<div class="field"><label>شناسهٔ کاربر (UUID)</label><input type="text" id="uf_uuid" class="mono" value="' + String((user && user.uuid) || '') + '" placeholder="خالی = ساخت خودکار"></div>' +
+      '</div>' +
+      '<div class="uf-section"><span>سهمیه و محدودیت</span><i></i></div>' +
+      '<div class="form-grid">' +
+      '<div class="field"><label>حجم مجاز (گیگابایت) — ۰ = نامحدود</label><input type="number" id="uf_dataLimitGb" min="0" step="1" list="dlDataLimit" value="' + Number((user && user.dataLimitGb) || 0) + '"></div>' +
+      '<div class="field"><label>مدت اعتبار (روز) — ۰ = بدون انقضا</label><input type="number" id="uf_expireDays" min="0" step="1" list="dlExpireDays" value="' + Number((user && user.expireDays) || 0) + '"></div>' +
+      '<div class="field"><label>سقف دستگاه متصل</label><input type="number" id="uf_ipLimit" min="1" max="200" step="1" value="' + Number((user && user.ipLimit) || 50) + '"></div>' +
+      '</div>' +
+      '<div class="field" style="margin-top:10px;"><span class="field-hint">تعداد کانفیگ را خود پنل تعیین می‌کند؛ هر آدرس فعال از تب «آدرس‌ها و منطقه» به یک نود تبدیل می‌شود و نیازی به انتخاب دستی تعداد نیست.</span></div>';
+
+    var tabButton = function(id, label) {
+      var on = activeTab === id;
+      return '<button type="button" role="tab" aria-selected="' + (on ? 'true' : 'false') + '" class="ftab' + (on ? ' is-active' : '') + '" data-uf-tab="' + id + '"><i class="ftab-dot"></i>' + label + '</button>';
+    };
+    var tabsHtml = tabButton('basic', 'اطلاعات کاربر');
+    USER_FORM_SCHEMA.forEach(function(group) { tabsHtml += tabButton(group.id, group.title); });
+    var tabsBar = $('userFormTabs');
+    if (tabsBar) tabsBar.innerHTML = tabsHtml;
+
+    var html = '<div class="uf-pane' + (activeTab === 'basic' ? ' is-active' : '') + '" data-uf-pane="basic">' + basicHtml + '</div>';
+    USER_FORM_SCHEMA.forEach(function(group) {
+      html += '<div class="uf-pane' + (activeTab === group.id ? ' is-active' : '') + '" data-uf-pane="' + group.id + '">' + formPaneHtml(group, cfg) + '</div>';
+    });
+    body.innerHTML = html;
+    formState.tab = activeTab;
+    formState.editingId = user ? user.id : null;
+    if ($('userFormTitle')) $('userFormTitle').innerHTML = (user ? ICO.refresh + ' ویرایش کاربر «' + (user.username || '') + '»' : ICO.plus + ' ایجاد کاربر جدید');
+    if ($('userFormSubmit')) $('userFormSubmit').innerHTML = user ? ICO.check + ' ذخیرهٔ تغییرات' : ICO.check + ' ساخت کاربر';
+  }
+
+  function collectUserForm() {
+    var body = $('userFormBody');
+    var config = {};
+    if (body) {
+      body.querySelectorAll('[data-uf]').forEach(function(el) {
+        var key = el.getAttribute('data-uf');
+        if (el.getAttribute('data-type') === 'switch') { config[key] = el.checked ? 'yes' : 'no'; return; }
+        if (el.type === 'number') {
+          var num = parseInt(el.value, 10);
+          config[key] = Number.isFinite(num) ? num : 0;
+          return;
+        }
+        if (key === 'yx') { config[key] = normalizeManualList(el.value); return; }
+        config[key] = String(el.value || '').trim();
+      });
+    }
+    var val = function(id, fallback) { return $(id) ? String($(id).value || '').trim() : fallback; };
+    return {
+      username: val('uf_username', ''),
+      preset: val('uf_preset', 'iran-fast'),
+      uuid: val('uf_uuid', ''),
+      note: val('uf_note', ''),
+      dataLimitGb: Number(val('uf_dataLimitGb', '0')) || 0,
+      expireDays: Number(val('uf_expireDays', '0')) || 0,
+      ipLimit: Number(val('uf_ipLimit', '50')) || 50,
+      config: config
+    };
+  }
+
+  function openUserForm(user) {
+    formState.tab = 'basic';
+    renderUserForm(user || null, null);
+    openModal('createModal');
+  }
+
+  function saveUser() {
+    var body = collectUserForm();
+    if (body.username.length < 2) { showToast('نام کاربری باید حداقل ۲ کاراکتر باشد', 'err'); return; }
+    // هشدارهای تداخل تنظیمات (فقط نمایش؛ جلوی ذخیره را نمی‌گیرد)
+    var conflicts = detectConflicts(body.config);
+    if (conflicts.length) showToast('هشدار: ' + conflicts[0], 'err');
+    var isEdit = Boolean(formState.editingId);
+    var payload = body;
+    if (isEdit) payload.id = formState.editingId;
+    var btn = $('userFormSubmit');
+    if (btn) btn.disabled = true;
+    api('/api/users', { method: isEdit ? 'PUT' : 'POST', body: JSON.stringify(payload) })
+      .then(function(data) {
+        if (data.success) {
+          if (isEdit) {
+            state.users = state.users.map(function(u) { return u.id === data.user.id ? data.user : u; });
+          } else {
+            state.users.unshift(data.user);
+          }
+          renderUsers(); renderLocations();
+          closeModal('createModal');
+          showToast(data.message || (isEdit ? 'کاربر ویرایش شد' : 'کاربر ساخته شد'), 'ok');
+        } else {
+          showToast(data.message || 'خطا در ذخیرهٔ کاربر', 'err');
+        }
+      })
+      .catch(function() { showToast('خطای شبکه در ذخیرهٔ کاربر', 'err'); })
+      .finally(function() { if (btn) btn.disabled = false; });
+  }
+
+  function editUser(id) {
+    var user = (state.users || []).filter(function(u) { return u.id === id; })[0];
+    if (!user) { showToast('کاربر یافت نشد', 'err'); return; }
+    // همیشه تازه‌ترین نسخه را از سرور بگیر تا همهٔ متغیرها (config) کامل باشد
+    api('/api/users?t=' + Date.now())
+      .then(function(data) {
+        if (data.success) {
+          state.users = data.users || state.users;
+          user = state.users.filter(function(u) { return u.id === id; })[0] || user;
+        }
+        openUserForm(user);
+      })
+      .catch(function() { openUserForm(user); });
+  }
+
+  function applyPresetToForm() {
+    var presetId = $('uf_preset') ? $('uf_preset').value : 'iran-fast';
+    renderUserForm(formState.editingId ? (state.users || []).filter(function(u) { return u.id === formState.editingId; })[0] : null, presetId);
+  }
+
+  // ---------- نسخه و بروزرسانی ----------
+  function renderUpdateInfo(info, silent) {
+    var latest = $('updLatest');
+    var stateEl = $('updState');
+    var notesEl = $('updNotes');
+    var drawerVersion = $('drawerVersion');
+    if (latest) latest.textContent = info && info.latest ? 'v' + info.latest : '—';
+    if (drawerVersion && info && info.current) drawerVersion.textContent = 'v' + info.current;
+    if ($('updAuto')) {
+      var autoReady = Boolean(info && (info.autoApplyAvailable || info.tokenSource === 'env'));
+      $('updAuto').textContent = autoReady ? 'در دسترس (کلید خود ورکر)' : 'دانلود فایل / دستور استقرار';
+      $('updAuto').style.color = autoReady ? 'var(--neon)' : 'var(--warn)';
+    }
+    if ($('updScript')) $('updScript').textContent = (info && info.scriptName) || 'تشخیص خودکار';
+    if (!stateEl) return;
+    if (!info || info.success === false) {
+      stateEl.textContent = 'بررسی ناموفق';
+      if (!silent) showToast((info && info.error) || 'بررسی بروزرسانی ناموفق بود', 'err');
+      return;
+    }
+    if (info.updateAvailable) {
+      stateEl.textContent = 'نسخهٔ تازه موجود است';
+      stateEl.style.color = 'var(--warn)';
+      if (!silent) showToast('نسخهٔ ' + info.latest + ' آماده است', 'ok');
+    } else {
+      stateEl.textContent = 'به‌روز است';
+      stateEl.style.color = 'var(--neon)';
+      if (!silent) showToast('نسخهٔ نصب‌شده به‌روز است', 'ok');
+    }
+    if (notesEl) {
+      var notes = info.notes || [];
+      notesEl.innerHTML = notes.map(function(n) { return '<li>' + n + '</li>'; }).join('');
+      notesEl.style.display = notes.length ? 'block' : 'none';
+    }
+  }
+
+  function checkUpdate(silent) {
+    api('/api/update?t=' + Date.now())
+      .then(function(info) { renderUpdateInfo(info, silent); })
+      .catch(function() { if (!silent) showToast('خطای شبکه در بررسی بروزرسانی', 'err'); });
+  }
+
+  // بروزرسانی بدون هیچ ورودی حسابی: فایل نسخهٔ تازه به‌صورت دانلود ذخیره می‌شود
+  // (قبلاً فایل خام _worker.js در تب جدید باز می‌شد و کاربر یک صفحهٔ کد می‌دید)
+  function downloadUpdateBundle() {
+    var link = document.createElement('a');
+    link.href = origin() + '/api/update-bundle';
+    link.setAttribute('download', 'miliconfig-worker.js');
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast('فایل نسخهٔ تازه دانلود شد', 'ok');
+  }
+
+  // گزارش گام‌به‌گام وضعیت نصب خودکار (فقط خواندنی؛ چیزی را تغییر نمی‌دهد)
+  function updateDiagRow(label, value, state) {
+    var color = state === false ? 'var(--danger)' : state === true ? 'var(--neon)' : 'var(--text)';
+    return '<div><b style="color:' + color + '">' + label + ':</b> ' + (value || '—') + '</div>';
+  }
+
+  function showUpdateBox(title, lines) {
+    var box = $('updDiagBox');
+    var body = $('updDiagBody');
+    if (!box || !body) return;
+    var html = title ? '<b>' + title + '</b>' : '';
+    if (lines && lines.length) {
+      html += '<div style="margin-top:' + (title ? '6px' : '0') + '">' + lines.join('<br>') + '</div>';
+    }
+    body.innerHTML = html;
+    box.style.display = 'block';
+  }
+
+  function renderUpdateDiagnose(d) {
+    if (!d || d.success === false) {
+      showUpdateBox('تشخیص ناموفق بود', [(d && (d.error || d.message)) || 'پاسخ نامعتبر از سرور']);
+      return;
+    }
+    var lines = [];
+    lines.push(updateDiagRow('کلید CF_API_TOKEN', d.tokenPresent ? 'تعریف شده روی ورکر' : 'تعریف نشده', d.tokenPresent));
+    if (d.tokenPresent) {
+      lines.push(updateDiagRow('اعتبار کلید', d.tokenValid ? ('معتبر' + (d.tokenStatus ? ' (' + d.tokenStatus + ')' : '')) : ('نامعتبر — ' + (d.tokenError || 'دلیل نامشخص')), d.tokenValid));
+    }
+    if (d.accountId) {
+      lines.push(updateDiagRow('Account ID', '…' + d.accountTail + (d.accountDetected ? ' (خودکار شناسایی شد)' : ''), true));
+    } else if (d.accountError) {
+      lines.push(updateDiagRow('Account ID', d.accountError, false));
+    }
+    lines.push(updateDiagRow('اسکریپت هدف', d.scriptName || 'تشخیص داده نشد', Boolean(d.scriptName)));
+    if (d.scriptSource) lines.push(updateDiagRow('منبع نام اسکریپت', d.scriptSource));
+    if (d.bindingCount) {
+      lines.push(updateDiagRow('بایندینگ‌های فعلی', d.bindingCount + ' مورد (' + (d.bindings || []).map(function(b) { return b.type; }).join(', ') + ')'));
+    } else if (d.bindingsError) {
+      lines.push(updateDiagRow('بایندینگ‌های فعلی', d.bindingsError, false));
+    }
+    if (d.compatibilityDate) {
+      lines.push(updateDiagRow('تاریخ سازگاری', d.compatibilityDate + ((d.compatibilityFlags || []).length ? ' · ' + d.compatibilityFlags.join(', ') : '')));
+    }
+    lines.push(updateDiagRow('نسخه', d.current + ' → ' + (d.latest || 'نامشخص'), d.updateAvailable ? null : true));
+    var steps = d.steps || [];
+    if (steps.length) {
+      lines.push('<div style="margin-top:6px">' + steps.map(function(s) { return '• ' + s; }).join('<br>') + '</div>');
+    }
+    showUpdateBox('نتیجهٔ تشخیص نصب خودکار', lines);
+  }
+
+  function diagnoseUpdate() {
+    showToast('در حال بررسی پیش‌نیازهای نصب خودکار...', 'ok');
+    api('/api/update?diagnose=1&t=' + Date.now())
+      .then(renderUpdateDiagnose)
+      .catch(function() { showToast('خطای شبکه در تشخیص نصب خودکار', 'err'); });
+  }
+
+  function copyUpdateCommand() {
+    api('/api/update?t=' + Date.now())
+      .then(function(info) {
+        var cmd = info && info.command
+          ? info.command
+          : 'curl -fsSL ' + (info && info.downloadUrl ? info.downloadUrl : '') + ' -o _worker.js && npx wrangler deploy _worker.js';
+        copyText(cmd, 'دستور استقرار کپی شد');
+      })
+      .catch(function() { showToast('خطای شبکه در دریافت دستور', 'err'); });
+  }
+
+  function enableAutoUpdate() {
+    var btn = document.querySelector('[data-act="enable-autoupdate"]');
+    if (btn) btn.disabled = true;
+    api('/api/auto-update-setup', { method: 'POST', body: JSON.stringify({ action: 'enable' }) })
+      .then(function(data) {
+        if (data.success) {
+          showToast(data.message || 'بروزرسانی خودکار فعال شد', 'ok');
+          checkUpdate(true);
+        } else {
+          showToast(data.message || data.error || 'نصب خودکار در دسترس نیست', 'err');
+        }
+      })
+      .catch(function() { showToast('خطای شبکه در فعال‌سازی', 'err'); })
+      .finally(function() { if (btn) btn.disabled = false; });
+  }
+
+  function disableAutoUpdate() {
+    if (!ask('بروزرسانی خودکار خاموش شود؟')) return;
+    api('/api/auto-update-setup', { method: 'POST', body: JSON.stringify({ action: 'disable' }) })
+      .then(function(data) {
+        showToast(data.success ? 'بروزرسانی خودکار خاموش شد' : 'خطا', data.success ? 'ok' : 'err');
+        checkUpdate(true);
+      })
+      .catch(function() { showToast('خطای شبکه', 'err'); });
+  }
+
+  function applyUpdateNow() {
+    if (!ask('نسخهٔ تازهٔ گیت‌هاب روی همین ورکر مستقر شود؟')) return;
+    var btn = document.querySelector('[data-act="apply-update"]');
+    if (btn) btn.disabled = true;
+    showToast('در حال دریافت و استقرار نسخهٔ تازه...', 'ok');
+    api('/api/update', { method: 'POST', body: JSON.stringify({ action: 'apply' }) })
+      .then(function(data) {
+        if (data.success) {
+          showToast(data.message || 'نسخهٔ تازه مستقر شد', 'ok');
+          setTimeout(function() { location.reload(); }, 2500);
+        } else if (data.needsManualDeploy) {
+          // بدون کلید ورکر: فایل به‌صورت دانلود ذخیره می‌شود (نه باز شدن فایل خام)
+          downloadUpdateBundle();
+          showUpdateBox(data.error || 'نصب خودکار در دسترس نیست', data.steps || []);
+          showToast('فایل نسخهٔ تازه ذخیره شد؛ راهنمای استقرار زیر کارت است', 'err');
+        } else {
+          showToast(data.error || data.message || 'بروزرسانی ناموفق بود', 'err');
+          if (data.error) showUpdateBox('خطای نصب خودکار', [data.error]);
+          if (data.diagnose) setTimeout(diagnoseUpdate, 600);
+        }
+      })
+      .catch(function() { showToast('خطای شبکه در بروزرسانی', 'err'); })
+      .finally(function() { if (btn) btn.disabled = false; });
+  }
+
+  function deleteUser(id) {
+    if (!ask('این کاربر حذف شود؟')) return;
+    api('/api/users?id=' + encodeURIComponent(id), { method: 'DELETE' })
+      .then(function(data) {
+        if (data.success) {
+          state.users = state.users.filter(function(u) { return u.id !== id; });
+          renderUsers(); renderLocations();
+          showToast('کاربر حذف شد', 'ok');
+        } else {
+          showToast(data.message || 'خطا در حذف کاربر', 'err');
+        }
+      })
+      .catch(function() { showToast('خطای شبکه در حذف کاربر', 'err'); });
+  }
+
+  function resetUser(id) {
+    if (!ask('مصرف این کاربر صفر شود؟')) return;
+    api('/api/users', { method: 'PUT', body: JSON.stringify({ id: id, action: 'reset' }) })
+      .then(function(data) {
+        if (data.success) {
+          state.users = state.users.map(function(u) { return u.id === id ? data.user : u; });
+          renderUsers();
+          showToast(data.message || 'مصرف صفر شد', 'ok');
+        } else {
+          showToast(data.message || 'خطا در ریست مصرف', 'err');
+        }
+      })
+      .catch(function() { showToast('خطای شبکه در ریست مصرف', 'err'); });
+  }
+
+  function reloadUsers() {
+    api('/api/users?t=' + Date.now())
+      .then(function(data) {
+        if (data.success) {
+          state.users = data.users || [];
+          renderUsers(); renderLocations();
+          showToast('لیست کاربران بروزرسانی شد', 'ok');
+        }
+      })
+      .catch(function() { showToast('خطا در دریافت کاربران', 'err'); });
+  }
+
+  // منوی اسکن: هر مورد یک صفحهٔ مستقل دارد و همه چیز داخل پنل اجرا می‌شود
+  var SCAN_META = {
+    ipv4: {
+      title: 'آی‌پی ثابت IPv4', icon: 'server', target: 'yx', country: true, family: false, manual: false,
+      desc: 'آدرس‌های سالم IPv4 به تفکیک کشور',
+      note: 'منابع آدرس به‌صورت زنده خوانده می‌شوند و هر آدرس با تست اتصال بررسی می‌شود. نتیجه را با دکمهٔ هر ردیف به آدرس‌های دستی، آدرس واسط یا پروکسی خروجی همان کاربر اضافه کنید.'
+    },
+    ipv6: {
+      title: 'آی‌پی ثابت IPv6', icon: 'signal', target: 'yx', country: true, family: false, manual: false, defaultCountry: 'IR',
+      desc: 'آدرس‌های نسخهٔ ۶ برای شبکه‌های همراه',
+      note: 'آدرس‌های IPv6 از رنج‌های زندهٔ کلادفلر انتخاب می‌شوند. خروجی ورکر IPv6 ندارد، پس این آدرس‌ها بدون تست TCP به‌عنوان پیشنهاد داده می‌شوند و باید در کلاینت امتحان شوند.'
+    },
+    domain: {
+      title: 'دامنه‌های جایگزین', icon: 'globe', target: 'yx', country: true, family: false, manual: false,
+      desc: 'دامنهٔ لبهٔ کلادفلر به جای آی‌پی خام',
+      note: 'برای شبکه‌هایی که آی‌پی خام را می‌بندند؛ دامنه‌ها به‌جای آی‌پی در تنظیمات آدرس‌های دستی می‌نشینند.'
+    },
+    proxyip: {
+      title: 'آدرس واسط (ProxyIP)', icon: 'api', target: 'p', country: true, family: false, manual: false,
+      desc: 'آدرس واسط آماده برای خروج از ایران',
+      note: 'یک آدرس واسط سالم انتخاب می‌شود تا نودها از بیرون ایران خارج شوند. با «تنظیم روی این کاربر» فقط همان کاربر تغییر می‌کند.'
+    },
+    proxy: {
+      title: 'پروکسی کشوری', icon: 'link', target: 's', country: true, family: true, manual: false,
+      desc: 'SOCKS5 و HTTP به تفکیک کشور',
+      note: 'پروکسی‌های زندهٔ همان کشور خوانده و تست می‌شوند؛ سریع‌ترین را می‌توانید به‌عنوان پروکسی خروجی ثبت کنید.'
+    },
+    manual: {
+      title: 'تست آدرس دستی', icon: 'terminal', target: 'yx', country: false, family: false, manual: true,
+      desc: 'فهرست خودتان را داخل پنل تست کنید',
+      note: 'هر خط یک آدرس یا host:port بنویسید (حداکثر ۲۴ مورد). تست از همین پنل انجام می‌شود و نتیجه همان‌جا می‌آید.'
+    }
+  };
+  var currentScan = '';
+
+  function scanCountryOptions(selected) {
+    var countries = INITIAL_DATA.countrySources || {};
+    return Object.keys(countries).map(function(code) {
+      return '<option value="' + code + '"' + (code === selected ? ' selected' : '') + '>' + countries[code].name + ' — ' + code + '</option>';
+    }).join('');
+  }
+
+  function scanLimitOptions(selected) {
+    return [5, 10, 15, 20].map(function(n) {
+      var fa = { 5: '۵', 10: '۱۰', 15: '۱۵', 20: '۲۰' }[n];
+      return '<option value="' + n + '"' + (n === selected ? ' selected' : '') + '>' + fa + ' مورد</option>';
+    }).join('');
+  }
+
+  function scanViewHtml(id) {
+    var m = SCAN_META[id];
+    var controls = '';
+    if (m.manual) {
+      controls = '<div class="field" style="grid-column: 1 / -1;"><label>آدرس‌ها؛ هر خط یک مورد (host یا host:port)</label>' +
+        '<textarea id="sc_manual_hosts" rows="4" placeholder="104.16.0.1" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.35);color:var(--text);font-family:var(--mono);font-size:.8rem;direction:ltr;text-align:left;outline:none;resize:vertical;"></textarea></div>';
+    } else {
+      if (m.country) controls += '<div class="field"><label>کشور</label><select id="sc_' + id + '_country">' + scanCountryOptions(m.defaultCountry || 'DE') + '</select></div>';
+      if (m.family) controls += '<div class="field"><label>خانواده آی‌پی</label><select id="sc_' + id + '_family"><option value="any" selected>IPv4 + IPv6</option><option value="ipv4">فقط IPv4</option><option value="ipv6">فقط IPv6</option></select></div>';
+      controls += '<div class="field"><label>تعداد نتیجه</label><select id="sc_' + id + '_limit">' + scanLimitOptions(10) + '</select></div>';
+    }
+    controls += '<button class="btn primary" type="button" data-act="scan-run" data-mode="' + id + '">' + ICO.bolt + ' ' + (m.manual ? 'تست آدرس‌ها' : 'شروع اسکن') + '</button>';
+    return '<div class="scan-view" id="scanView_' + id + '">' +
+      '<div class="scan-head"><span class="scan-title">' + ICO[m.icon] + ' ' + m.title + '</span></div>' +
+      '<div class="scan-controls">' + controls + '</div>' +
+      (m.manual ? '<div class="toolbar" style="margin:0 0 8px;">' +
+        '<button class="btn sm" type="button" data-act="add-cf-ips">' + ICO.plus + ' <span data-i18n="scanner.addCfIps">آی‌پی‌های کلادفلر → آدرس‌های دستی</span></button>' +
+        '<button class="btn sm ghost" type="button" data-act="add-cf-domains">' + ICO.globe + ' <span data-i18n="scanner.addCfDomains">دامنه‌های کلادفلر → آدرس‌های دستی</span></button>' +
+        '</div>' : '') +
+      '<div class="scan-status" id="scStatus_' + id + '"></div>' +
+      '<div class="table-wrap"><table class="scan"><thead><tr><th>کشور</th><th>آدرس / پورت</th><th>نوع / پروتکل</th><th>پینگ</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="scBody_' + id + '"><tr><td colspan="6" class="empty">هنوز اسکنی اجرا نشده است.</td></tr></tbody></table></div>' +
+      '</div>';
+  }
+
+  function buildScanViews() {
+    var host = $('scanViews');
+    if (!host) return;
+    host.innerHTML = Object.keys(SCAN_META).map(scanViewHtml).join('');
+    closeScanView();
+  }
+
+  function openScanView(id) {
+    if (!SCAN_META[id]) return;
+    currentScan = id;
+    showPanel('scanner');
+    if ($('scanHome')) $('scanHome').style.display = 'none';
+    if ($('scanBar')) $('scanBar').style.display = 'block';
+    if ($('scanBackBtn')) $('scanBackBtn').style.display = 'inline-flex';
+    if ($('scanPanelTitle')) $('scanPanelTitle').textContent = SCAN_META[id].title;
+    syncScanSwitches(id);
+    document.querySelectorAll('.scan-view').forEach(function(view) {
+      view.classList.toggle('is-active', view.id === 'scanView_' + id);
+    });
+    if ($('scanTarget')) $('scanTarget').value = SCAN_META[id].target;
+  }
+
+  function closeScanView() {
+    currentScan = '';
+    if ($('scanHome')) $('scanHome').style.display = '';
+    if ($('scanBar')) $('scanBar').style.display = 'none';
+    if ($('scanBackBtn')) $('scanBackBtn').style.display = 'none';
+    if ($('scanPanelTitle')) $('scanPanelTitle').textContent = t('panel.scanner');
+    syncScanSwitches('');
+    document.querySelectorAll('.scan-view').forEach(function(view) { view.classList.remove('is-active'); });
+  }
+
+  // کلیدهای روشن/خاموش اسکنر: فقط یکی روشن می‌ماند و با کارت هم‌زمان هماهنگ است
+  function syncScanSwitches(id) {
+    document.querySelectorAll('input[data-scan]').forEach(function(input) {
+      input.checked = input.getAttribute('data-scan') === id;
+    });
+    document.querySelectorAll('.scan-tile').forEach(function(tile) {
+      tile.classList.toggle('is-on', tile.getAttribute('data-mode') === id);
+    });
+  }
+
+  function toggleScanMode(id, on) {
+    if (!on) { closeScanView(); return; }
+    openScanView(id);
+    if (id !== 'manual') runScanMode(id);
+  }
+
+  function renderScanRows(items, mode) {
+    mode = mode || currentScan;
+    var body = $('scBody_' + mode);
+    if (!body) return;
+    if (!items.length) {
+      body.innerHTML = '<tr><td colspan="6" class="empty">' + t('scan.none') + '</td></tr>';
+      return;
+    }
+    body.innerHTML = items.map(function(p) {
+      var latClass = p.latencyMs < 150 ? 'lat-fast' : (p.latencyMs < 400 ? 'lat-med' : 'lat-slow');
+      var isProxyIp = p.kind === 'proxyip';
+      var isIp = p.kind === 'ip' || isProxyIp;
+      var ipLabel = p.family === 'ipv6' ? 'IPv6' : (p.family === 'domain' ? t('scan.domain') : 'IPv4');
+      var typeLabel = isProxyIp ? 'آدرس واسط · ' + p.protocol : (isIp ? (t('scan.ipStatic') + ' · ' + ipLabel) : (t('scan.proxy') + ' · ' + p.protocol));
+      var targetLabel = { yx: 'آدرس‌های دستی', p: 'آدرس واسط', s: 'پروکسی خروجی' }[scanTargetValue()];
+      var action = isIp
+        ? '<button class="btn sm" type="button" data-act="add-ip" data-ip="' + p.ip + '" data-port="' + p.port + '">' + ICO.plus + ' به ' + targetLabel + '</button>'
+        : '<button class="btn sm" type="button" data-act="use-proxy" data-proxy="' + String(p.proxy || '').replace(/"/g, '&quot;') + '">' + ICO.link + ' ' + t('btn.connectS') + '</button>';
+      return '<tr>' +
+        '<td><span class="code-badge">' + (p.code || '—') + '</span> ' + (p.country || '—') + '</td>' +
+        '<td class="mono">' + (String(p.ip).includes(':') ? '[' + p.ip + ']' : p.ip) + ':' + p.port + '</td>' +
+        '<td><span class="tag on">' + typeLabel + '</span></td>' +
+        '<td class="mono ' + latClass + '">' + p.latencyMs + ' ms</td>' +
+        '<td><span class="tag ' + (p.verified === false ? '' : 'on') + '">' + (p.verified === false ? t('scan.unverified') : t('scan.online')) + '</span></td>' +
+        '<td>' + action + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function scanRequest(payload) {
+    return fetch(origin() + '/api/scanner/fetch-and-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function(res) { return res.json(); });
+  }
+
+  function scanTargetValue() {
+    var el = $('scanTarget');
+    var v = el ? el.value : 'yx';
+    return v === 'p' || v === 's' ? v : 'yx';
+  }
+
+  function applyScanItems(target, items) {
+    target = target || scanTargetValue();
+    var userId = $('scanUser') ? $('scanUser').value : '';
+    return fetch(origin() + '/api/scanner/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Mili-Admin': '1' },
+      body: JSON.stringify({ target: target, items: items, userId: userId })
+    })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        showToast(data.message || (data.success ? 'اعمال شد' : 'خطا در اعمال'), data.success ? 'ok' : 'err');
+        if (data.success) {
+          if (userId) api('/api/users?t=' + Date.now()).then(function(list) {
+            if (list.success) { state.users = list.users || []; renderUsers(); renderLocations(); }
+          }).catch(function() {});
+          return api('/api/config').then(function(cfg) {
+            if (cfg && typeof cfg === 'object' && !cfg.error) {
+              state.config = Object.assign({}, state.config, cfg);
+              fillSettings();
+            }
+            return data;
+          });
+        }
+        return data;
+      })
+      .catch(function() { showToast('خطای شبکه در اعمال نتیجه اسکن', 'err'); });
+  }
+
+  function runScanMode(id) {
+    if (id === 'manual') return runManualScan();
+    var meta = SCAN_META[id];
+    if (!meta) return Promise.resolve([]);
+    var status = $('scStatus_' + id);
+    var body = $('scBody_' + id);
+    var countryEl = $('sc_' + id + '_country');
+    var limitEl = $('sc_' + id + '_limit');
+    var familyEl = $('sc_' + id + '_family');
+    var payload = { country: countryEl ? countryEl.value : 'DE', limit: limitEl ? limitEl.value : '10' };
+    if (id === 'proxy') {
+      payload.kind = 'proxy';
+      payload.family = familyEl ? familyEl.value : 'any';
+    } else {
+      payload.mode = id;
+    }
+    if (body) body.innerHTML = '<tr><td colspan="6" class="empty">در حال تست...</td></tr>';
+    if (status) {
+      status.className = 'scan-status';
+      status.textContent = id === 'proxy'
+        ? 'در حال خواندن پروکسی‌های کشوری و تست اتصال...'
+        : 'در حال خواندن منابع آدرس و تست اتصال...';
+    }
+    return scanRequest(payload)
+      .then(function(data) {
+        var diag = '';
+        if (data.diagnostics && data.diagnostics.length) {
+          var healthy = data.diagnostics.filter(function(d) { return d.reachable && d.entries > 0; }).length;
+          diag = ' · منابع سالم: ' + healthy + ' از ' + data.diagnostics.length;
+        }
+        if (data.elapsedMs) diag += ' · ' + Math.round(data.elapsedMs / 1000) + 's';
+        if (data.success && data.proxies && data.proxies.length) {
+          scanResults = data.proxies;
+          renderScanRows(data.proxies, id);
+          if (status) status.textContent = (data.message || (data.proxies.length + ' مورد آنلاین از ' + data.testedCount + ' تست')) + diag;
+          return data.proxies;
+        }
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">موردی یافت نشد.</td></tr>';
+        if (status) {
+          status.className = 'scan-status err';
+          status.textContent = (data.message || 'دریافت لیست یا تست ناموفق بود.') + diag;
+        }
+        return [];
+      })
+      .catch(function() {
+        if (body) body.innerHTML = '<tr><td colspan="6" class="empty">خطا.</td></tr>';
+        if (status) { status.className = 'scan-status err'; status.textContent = 'خطای شبکه در اجرای اسکنر.'; }
+        return [];
+      });
+  }
+
+  // آدرس‌های دستی: خط‌به‌خط داخل همین پنل تست می‌شوند
+  function parseManualHosts(raw) {
+    var lines = String(raw || '').split(',').join(String.fromCharCode(10)).split(String.fromCharCode(10));
+    var out = [];
+    lines.forEach(function(line) {
+      var text = String(line || '').trim();
+      if (!text) return;
+      var scheme = text.indexOf('://');
+      if (scheme > -1) text = text.slice(scheme + 3);
+      var host = text;
+      var port = 443;
+      var colon = text.lastIndexOf(':');
+      if (colon > 0) {
+        var maybe = parseInt(text.slice(colon + 1), 10);
+        if (maybe > 0 && maybe < 65536) { host = text.slice(0, colon); port = maybe; }
+      }
+      if (host.charAt(0) === '[' && host.charAt(host.length - 1) === ']') host = host.slice(1, -1);
+      if (!host) return;
+      out.push({ host: host, port: port });
+    });
+    return out.slice(0, 24);
+  }
+
+  function runManualScan() {
+    var status = $('scStatus_manual');
+    var body = $('scBody_manual');
+    var hosts = parseManualHosts($('sc_manual_hosts') ? $('sc_manual_hosts').value : '');
+    if (!hosts.length) {
+      if (status) { status.className = 'scan-status err'; status.textContent = 'آدرسی وارد نشده است؛ هر خط یک آدرس یا host:port بنویسید.'; }
+      return Promise.resolve([]);
+    }
+    if (body) body.innerHTML = '<tr><td colspan="6" class="empty">در حال تست...</td></tr>';
+    var queue = hosts.slice();
+    var results = [];
+    var done = 0;
+    if (status) { status.className = 'scan-status'; status.textContent = 'تست ' + hosts.length + ' آدرس داخل پنل...'; }
+    var probeOne = function(item) {
+      return fetch(origin() + '/api/scanner/probe?host=' + encodeURIComponent(item.host) + '&port=' + item.port)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          var ipv6 = item.host.indexOf(':') > -1;
+          results.push({
+            code: '—', country: 'دستی', ip: item.host, port: item.port, kind: 'ip',
+            family: ipv6 ? 'ipv6' : 'ipv4', protocol: ipv6 ? 'IPv6' : 'IPv4',
+            latencyMs: Number(data && data.latencyMs) || 0, verified: !!(data && data.success)
+          });
+        })
+        .catch(function() {
+          results.push({ code: '—', country: 'دستی', ip: item.host, port: item.port, kind: 'ip', family: 'ipv4', protocol: 'IPv4', latencyMs: 0, verified: false });
+        })
+        .then(function() {
+          done++;
+          if (status) status.textContent = 'تست ' + done + ' از ' + hosts.length + ' آدرس...';
+        });
+    };
+    var worker = function() {
+      if (!queue.length) return Promise.resolve();
+      var item = queue.shift();
+      return probeOne(item).then(worker);
+    };
+    var runners = [];
+    for (var i = 0; i < 6; i++) runners.push(worker());
+    return Promise.all(runners).then(function() {
+      results.sort(function(a, b) { return (b.verified ? 1 : 0) - (a.verified ? 1 : 0); });
+      var online = results.filter(function(r) { return r.verified; });
+      renderScanRows(results, 'manual');
+      scanResults = results;
+      if (status) {
+        status.className = online.length ? 'scan-status' : 'scan-status err';
+        status.textContent = online.length
+          ? online.length + ' از ' + results.length + ' آدرس پاسخ داد؛ با دکمهٔ ردیف به تنظیمات کاربر اضافه کنید.'
+          : 'هیچ آدرسی پاسخ نداد؛ آدرس‌ها یا پورت را بررسی کنید.';
+      }
+      return results;
+    });
+  }
+
+  function syncConditionalFields() {
+    document.querySelectorAll('[data-show-when]').forEach(function(el) {
+      var key = el.getAttribute('data-show-when');
+      var input = document.querySelector('.switch input[data-key="' + key + '"]');
+      el.style.display = (!input || input.checked) ? '' : 'none';
+    });
+  }
+
+  function rotatePath() {
+    if (!ask(t('toast.rotateConfirm'))) return;
+    fetch(origin() + '/api/admin/rotate-path', { method: 'POST' })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success && data.redirect) {
+          window.location.href = data.redirect;
+        } else {
+          showToast(data.message || t('toast.network'), 'err');
+        }
+      })
+      .catch(function() { showToast(t('toast.network'), 'err'); });
+  }
+
+  function testUserNodes(token) {
+    if (!token) return;
+    showToast(t('toast.testingNodes'), 'ok');
+    fetch(origin() + '/sub/' + token + '?target=raw&limit=6')
+      .then(function(res) { return res.text(); })
+      .then(function(text) {
+        var nodes = [];
+        var seen = {};
+        String(text || '').split(/\\r?\\n/).forEach(function(line) {
+          var match = line.match(/@\\[?([0-9a-fA-F:.]+)\\]?:(\\d+)/);
+          if (!match) return;
+          var host = match[1];
+          var port = parseInt(match[2], 10) || 443;
+          var key = host + ':' + port;
+          if (seen[key] || host === '127.0.0.1') return;
+          seen[key] = true;
+          nodes.push({ host: host, port: port });
+        });
+        if (!nodes.length) { showToast(t('scan.none'), 'err'); return; }
+        return fetch(origin() + '/api/scanner/test-nodes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nodes: nodes.slice(0, 8) })
+        }).then(function(res) { return res.json(); }).then(function(data) {
+          showToast(data.message || t('toast.network'), data.success ? 'ok' : 'err');
+        });
+      })
+      .catch(function() { showToast(t('toast.network'), 'err'); });
+  }
+
+  function addCfDefaults(kind) {
+    var items = kind === 'ips'
+      ? (INITIAL_DATA.officialIps || []).concat(INITIAL_DATA.officialIpv6 || []).map(function(ip) { return { ip: ip, port: 443, name: ip }; })
+      : (INITIAL_DATA.directDomains || []).map(function(domain) { return { ip: domain, port: 443, name: domain }; });
+    if (!items.length) { showToast('لیست پیش‌فرض خالی است', 'err'); return; }
+    applyScanItems('yx', items).then(function(data) {
+      if (data && data.success) {
+        showToast((kind === 'ips' ? 'آی‌پی‌های پیش‌فرض کلادفلر' : 'دامنه‌های پیش‌فرض کلادفلر') + ' به آدرس‌های دستی اضافه شدند', 'ok');
+      }
+    });
+  }
+
+  function addNode(ip, port) {
+    var host = String(ip || '').trim();
+    var p = Number(port) || 443;
+    if (scanTargetValue() === 'p') return applyScanItems('p', [{ ip: host, port: p }]);
+    return applyScanItems('yx', [{ ip: host, port: p, name: host }]);
+  }
+
+  function useProxy(proxyUrl) {
+    if (!proxyUrl) { showToast('آدرس پروکسی نامعتبر است', 'err'); return; }
+    return applyScanItems('s', [{ proxy: proxyUrl }]);
+  }
+
+  function countryProxy(code) {
+    openScanView('proxy');
+    if ($('sc_proxy_country')) $('sc_proxy_country').value = code;
+    if ($('scanTarget')) $('scanTarget').value = 's';
+    return runScanMode('proxy').then(function(items) {
+      if (!items || !items.length || !items[0].proxy) return;
+      var status = $('scStatus_proxy');
+      if (status) status.textContent = 'سریع‌ترین پروکسی ' + code + ' (' + items[0].latencyMs + ' ms) به‌عنوان پروکسی خروجی ثبت شد.';
+      return useProxy(items[0].proxy);
+    });
+  }
+
+  function countryIp(code) {
+    openScanView('ipv4');
+    if ($('sc_ipv4_country')) $('sc_ipv4_country').value = code;
+    if ($('scanTarget')) $('scanTarget').value = 'yx';
+    return runScanMode('ipv4').then(function(items) {
+      if (!items || !items.length) return;
+      var status = $('scStatus_ipv4');
+      return applyScanItems('yx', items.slice(0, 3).map(function(p) { return { ip: p.ip, port: p.port, name: p.ip }; }))
+        .then(function() { if (status) status.textContent = 'آدرس‌های ثابت به «آدرس‌های دستی» اضافه شدند (گزینهٔ آی‌پی‌های ثابت کلادفلر را روشن نگه دارید).'; });
+    });
+  }
+
+  function savePassword() {
+    var oldPwd = ($('pwdOld').value || '').trim();
+    var newPwd = ($('pwdNew').value || '').trim();
+    var newPwd2 = ($('pwdNew2').value || '').trim();
+    if (newPwd.length < 4) { showToast('رمز جدید باید حداقل ۴ کاراکتر باشد', 'err'); return; }
+    if (newPwd !== newPwd2) { showToast('تکرار رمز جدید یکسان نیست', 'err'); return; }
+    fetch(origin() + '/api/admin/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd })
+    })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          closeModal('passwordModal');
+          $('pwdOld').value = ''; $('pwdNew').value = ''; $('pwdNew2').value = '';
+          showToast('رمز مدیر تغییر کرد', 'ok');
+        } else {
+          showToast(data.message || 'خطا در تغییر رمز', 'err');
+        }
+      })
+      .catch(function() { showToast('خطای شبکه در تغییر رمز', 'err'); });
+  }
+
+  function logout() {
+    fetch(origin() + '/api/admin/logout', { method: 'POST' }).catch(function() {}).finally(function() {
+      window.location.href = '/';
+    });
+  }
+
+  function openModal(id) { var m = $(id); if (m) m.classList.add('is-open'); }
+  function closeModal(id) { var m = $(id); if (m) m.classList.remove('is-open'); }
+
+  // ——— راهنمای پنل: چند تب، باز شدن نرم بعد از دو ثانیه ———
+  function switchHelpTab(id) {
+    document.querySelectorAll('[data-help-tab]').forEach(function(b) {
+      b.classList.toggle('is-active', b.getAttribute('data-help-tab') === id);
+    });
+    document.querySelectorAll('[data-help-pane]').forEach(function(p) {
+      p.classList.toggle('is-active', p.getAttribute('data-help-pane') === id);
+    });
+    var body = document.querySelector('#helpModal .help-body');
+    if (body) body.scrollTop = 0;
+  }
+
+  var PLACEMENT_PROVIDERS = {
+    GCP: [
+      { id: 'europe-west3', name: 'Frankfurt', country: 'Germany', iso: 'DE', city: 'Frankfurt' },
+      { id: 'europe-west10', name: 'Berlin', country: 'Germany', iso: 'DE', city: 'Berlin' },
+      { id: 'europe-west4', name: 'Netherlands', country: 'Netherlands', iso: 'NL', city: 'Eemshaven' },
+      { id: 'europe-west2', name: 'London', country: 'United Kingdom', iso: 'GB', city: 'London' },
+      { id: 'europe-west9', name: 'Paris', country: 'France', iso: 'FR', city: 'Paris' },
+      { id: 'europe-north1', name: 'Finland', country: 'Finland', iso: 'FI', city: 'Hamina' },
+      { id: 'europe-north2', name: 'Stockholm', country: 'Sweden', iso: 'SE', city: 'Stockholm' },
+      { id: 'europe-west6', name: 'Zurich', country: 'Switzerland', iso: 'CH', city: 'Zurich' },
+      { id: 'europe-west8', name: 'Milan', country: 'Italy', iso: 'IT', city: 'Milan' },
+      { id: 'me-central1', name: 'Doha', country: 'Qatar', iso: 'QA', city: 'Doha' },
+      { id: 'us-east4', name: 'N. Virginia', country: 'United States', iso: 'US', city: 'Ashburn' },
+      { id: 'asia-southeast1', name: 'Singapore', country: 'Singapore', iso: 'SG', city: 'Singapore' },
+      { id: 'asia-northeast1', name: 'Tokyo', country: 'Japan', iso: 'JP', city: 'Tokyo' }
+    ],
+    AWS: [
+      { id: 'eu-central-1', name: 'Europe (Frankfurt)', country: 'Germany', iso: 'DE', city: 'Frankfurt' },
+      { id: 'eu-west-1', name: 'Europe (Ireland)', country: 'Ireland', iso: 'IE', city: 'Dublin' },
+      { id: 'eu-west-2', name: 'Europe (London)', country: 'United Kingdom', iso: 'GB', city: 'London' },
+      { id: 'eu-west-3', name: 'Europe (Paris)', country: 'France', iso: 'FR', city: 'Paris' },
+      { id: 'eu-north-1', name: 'Europe (Stockholm)', country: 'Sweden', iso: 'SE', city: 'Stockholm' },
+      { id: 'me-central-1', name: 'Middle East (UAE)', country: 'UAE', iso: 'AE', city: 'Abu Dhabi' },
+      { id: 'us-east-1', name: 'US East (Virginia)', country: 'United States', iso: 'US', city: 'Virginia' },
+      { id: 'ap-southeast-1', name: 'Asia Pacific', country: 'Singapore', iso: 'SG', city: 'Singapore' }
+    ],
+    Azure: [
+      { id: 'germanywestcentral', name: 'Germany West', country: 'Germany', iso: 'DE', city: 'Frankfurt' },
+      { id: 'westeurope', name: 'West Europe', country: 'Netherlands', iso: 'NL', city: 'Amsterdam' },
+      { id: 'uksouth', name: 'UK South', country: 'United Kingdom', iso: 'GB', city: 'London' },
+      { id: 'francecentral', name: 'France Central', country: 'France', iso: 'FR', city: 'Paris' },
+      { id: 'swedencentral', name: 'Sweden Central', country: 'Sweden', iso: 'SE', city: 'Gavle' },
+      { id: 'uaenorth', name: 'UAE North', country: 'UAE', iso: 'AE', city: 'Dubai' },
+      { id: 'eastus', name: 'East US', country: 'United States', iso: 'US', city: 'Virginia' }
+    ]
+  };
+  var currentPlProvider = 'GCP';
+
+  function selectPlacementMode(mode) {
+    var smartCard = $('plModeSmart');
+    var manualCard = $('plModeManual');
+    var manualBox = $('plManualBox');
+    if (mode === 'manual') {
+      if (smartCard) smartCard.classList.remove('is-selected');
+      if (manualCard) manualCard.classList.add('is-selected');
+      if (manualBox) manualBox.style.display = 'block';
+      renderPlacementList(currentPlProvider);
+    } else {
+      if (smartCard) smartCard.classList.add('is-selected');
+      if (manualCard) manualCard.classList.remove('is-selected');
+      if (manualBox) manualBox.style.display = 'none';
+      if ($('plSelectedRegion')) $('plSelectedRegion').value = 'smart';
+      if ($('plSelectedIso')) $('plSelectedIso').value = '';
+    }
+  }
+
+  function selectPlacementProvider(prov) {
+    currentPlProvider = prov;
+    document.querySelectorAll('.pl-prov-btn').forEach(function(b) {
+      b.classList.toggle('is-selected', b.getAttribute('data-prov') === prov);
+    });
+    renderPlacementList(prov);
+  }
+
+  function renderPlacementList(prov) {
+    var box = $('plRegionsList');
+    if (!box) return;
+    var list = PLACEMENT_PROVIDERS[prov] || [];
+    var cur = ($('plSelectedRegion') && $('plSelectedRegion').value || '').toLowerCase();
+    box.innerHTML = list.map(function(r) {
+      var val = prov.toLowerCase() + ':' + r.id.toLowerCase();
+      var sel = cur === val ? ' is-selected' : '';
+      var cc = r.iso.toLowerCase();
+      return '<div class="pl-reg-row' + sel + '" data-reg="' + val + '" data-iso="' + r.iso + '" onclick="pickPlacementRegion(this)">' +
+        '<div class="mono" style="color:#22d3ee;font-weight:700;">' + r.id + '</div>' +
+        '<div>' + r.name + '</div>' +
+        '<div><span class="fi fi-' + cc + '"></span> ' + r.country + '</div>' +
+        '<div>' + r.city + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function pickPlacementRegion(el) {
+    document.querySelectorAll('.pl-reg-row').forEach(function(r) { r.classList.remove('is-selected'); });
+    el.classList.add('is-selected');
+    if ($('plSelectedRegion')) $('plSelectedRegion').value = el.getAttribute('data-reg') || 'smart';
+    if ($('plSelectedIso')) $('plSelectedIso').value = el.getAttribute('data-iso') || 'DE';
+  }
+
+  function openPlacementModal() {
+    openModal('placementModal');
+    api('/api/placement').then(function(d) {
+      if (d && d.placement && d.placement !== 'smart' && d.placement !== 'off') {
+        if ($('plSelectedRegion')) $('plSelectedRegion').value = d.placement;
+        var p = String(d.placement).split(':')[0].toUpperCase();
+        if (PLACEMENT_PROVIDERS[p]) currentPlProvider = p === 'AZURE' ? 'Azure' : p;
+        selectPlacementMode('manual');
+        selectPlacementProvider(currentPlProvider);
+      } else {
+        selectPlacementMode('smart');
+      }
+    }).catch(function() { selectPlacementMode('smart'); });
+  }
+
+  function submitPlacementChange() {
+    var reg = $('plSelectedRegion') ? $('plSelectedRegion').value : 'smart';
+    var iso = $('plSelectedIso') ? $('plSelectedIso').value : '';
+    var tok = $('plCfToken') ? $('plCfToken').value.trim() : '';
+    var btn = $('plSubmitBtn');
+    if (btn) btn.disabled = true;
+    api('/api/placement', {
+      method: 'POST',
+      body: JSON.stringify({ region: reg, iso: iso, cf_token: tok, local_only: !tok })
+    }).then(function(res) {
+      if (res && res.success) {
+        showToast(res.message || 'ریجن پنل با موفقیت بروزرسانی شد', 'ok');
+        closeModal('placementModal');
+        reloadUsers();
+      } else {
+        showToast((res && (res.error || res.message)) || 'خطا در تغییر ریجن', 'err');
+      }
+    }).catch(function() {
+      showToast('خطای شبکه در تغییر ریجن', 'err');
+    }).finally(function() {
+      if (btn) btn.disabled = false;
+    });
+  }
+
+  function openAdminQr(url) {
+    var box = $('qrCodeBox');
+    if (box) {
+      box.innerHTML = '';
+      if (typeof QRCodeStyling !== 'undefined') {
+        var qr = new QRCodeStyling({
+          width: 230, height: 230, data: url, margin: 4,
+          dotsOptions: { color: '#020804', type: 'rounded' },
+          backgroundOptions: { color: '#ffffff' }
+        });
+        qr.append(box);
+      }
+    }
+    openModal('qrModal');
+  }
+
+  function downloadAdminQr() {
+    var canvas = document.querySelector('#qrCodeBox canvas');
+    if (!canvas) return;
+    var a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'miliconfig-sub-qr.png';
+    a.click();
+  }
+
+  function openHelp() {
+    switchHelpTab(lsGet('mili_help_tab') || 'quick');
+    openModal('helpModal');
+  }
+
+  // بازگرداندن همهٔ تنظیمات کلی به پیش‌فرض
+  function resetAllSettings() {
+    var btn = document.querySelector('[data-act="confirm-reset"]');
+    if (btn) { btn.disabled = true; btn.classList.add('is-busy'); }
+    api('/api/config', { method: 'POST', body: JSON.stringify({ _reset: true }) })
+      .then(function(data) {
+        if (data && data.success) {
+          closeModal('resetAllModal');
+          showToast('همهٔ تنظیمات به حالت پیش‌فرض برگشت', 'ok');
+          if (data.config) { state.config = data.config; fillSettings(); }
+          setTimeout(function() { window.location.reload(); }, 1100);
+          return;
+        }
+        if (btn) { btn.disabled = false; btn.classList.remove('is-busy'); }
+        showToast((data && data.message) || 'بازنشانی انجام نشد', 'err');
+      })
+      .catch(function() {
+        if (btn) { btn.disabled = false; btn.classList.remove('is-busy'); }
+        showToast('خطای شبکه در بازنشانی تنظیمات', 'err');
+      });
+  }
+
+  function masterSub() { return origin() + '/sub/' + (ADMIN_PATH || ''); }
+
+  document.addEventListener('click', function(event) {
+    var tab = event.target.closest('[data-tab]');
+    if (tab) {
+      var tabName = tab.getAttribute('data-tab');
+      // رفتن به تب اسکنر دوباره منوی اسکن‌ها را نشان می‌دهد
+      if (tabName === 'scanner') closeScanView();
+      showPanel(tabName);
+      return;
+    }
+
+    var formTab = event.target.closest('[data-uf-tab]');
+    if (formTab) { switchUserFormTab(formTab.getAttribute('data-uf-tab')); return; }
+
+    var helpTab = event.target.closest('[data-help-tab]');
+    if (helpTab) {
+      var helpTabId = helpTab.getAttribute('data-help-tab');
+      lsSet('mili_help_tab', helpTabId);
+      switchHelpTab(helpTabId);
+      return;
+    }
+
+    var el = event.target.closest('[data-act]');
+    if (!el) return;
+    var act = el.getAttribute('data-act');
+
+    if (act === 'copy') { copyText(el.getAttribute('data-url') || '', 'لینک کپی شد'); }
+    else if (act === 'copy-master') { copyText(masterSub(), 'سابلینک اصلی کپی شد'); }
+    else if (act === 'open-create') { openUserForm(null); }
+    else if (act === 'edit-user') { editUser(el.getAttribute('data-id')); }
+    else if (act === 'save-user' || act === 'create-user') { saveUser(); }
+    else if (act === 'toggle-drawer') { toggleDrawer(); }
+    else if (act === 'close-drawer') { toggleDrawer(false); }
+    else if (act === 'check-update') { showPanel('dashboard'); checkUpdate(); }
+    else if (act === 'apply-update') { applyUpdateNow(); }
+    else if (act === 'diagnose-update') { diagnoseUpdate(); }
+    else if (act === 'download-update') { downloadUpdateBundle(); }
+    else if (act === 'copy-update-cmd') { copyUpdateCommand(); }
+    else if (act === 'enable-autoupdate') { enableAutoUpdate(); }
+    else if (act === 'disable-autoupdate') { disableAutoUpdate(); }
+    else if (act === 'open-password') { openModal('passwordModal'); }
+    else if (act === 'open-help') { openHelp(); }
+    else if (act === 'open-placement') { openPlacementModal(); }
+    else if (act === 'open-qr') { openAdminQr(el.getAttribute('data-url') || ''); }
+    else if (act === 'open-reset') { openModal('resetAllModal'); }
+    else if (act === 'confirm-reset') { resetAllSettings(); }
+    else if (act === 'open-multi') { showPanel('locations'); }
+    else if (act === 'close-modal') { closeModal(el.getAttribute('data-modal')); }
+    else if (act === 'delete-user') { deleteUser(el.getAttribute('data-id')); }
+    else if (act === 'reset-user') { resetUser(el.getAttribute('data-id')); }
+    else if (act === 'reload-users') { reloadUsers(); }
+    else if (act === 'save-password') { savePassword(); }
+    else if (act === 'logout') { logout(); }
+    else if (act === 'go-scan') { showPanel('scanner'); closeScanView(); }
+    else if (act === 'add-node' || act === 'add-ip') { addNode(el.getAttribute('data-ip'), el.getAttribute('data-port')); }
+    else if (act === 'use-proxy') { useProxy(el.getAttribute('data-proxy')); }
+    else if (act === 'country-proxy') { countryProxy(el.getAttribute('data-code')); }
+    else if (act === 'loc-random-ip') { locRandomIp(false); }
+    else if (act === 'loc-random-ipv6') { locRandomIp(true); }
+    else if (act === 'loc-copy-region') { locCopyRegion(); }
+    else if (act === 'country-ip') { countryIp(el.getAttribute('data-code')); }
+    else if (act === 'toggle-theme') { toggleTheme(); }
+    else if (act === 'install-app') { promptInstall(); }
+    else if (act === 'toggle-lang') { toggleLang(); }
+    else if (act === 'add-cf-ips') { addCfDefaults('ips'); }
+    else if (act === 'add-cf-domains') { addCfDefaults('domains'); }
+    else if (act === 'copy-admin-path') { copyText('/' + ADMIN_PATH, 'مسیر مدیریت کپی شد'); }
+    else if (act === 'rotate-path') { rotatePath(); }
+    else if (act === 'test-nodes') { testUserNodes(el.getAttribute('data-user')); }
+    else if (act === 'scan-back') { closeScanView(); }
+    else if (act === 'scan-run') { runScanMode(el.getAttribute('data-mode')); }
+  });
+
+  // بازخورد لمسی: موج نور از نقطهٔ لمس/کلیک روی دکمه‌ها و تب‌ها
+  document.addEventListener('pointerdown', function(event) {
+    var host = event.target.closest('.btn, .icon-btn, .ftab, .tab, .drawer-item, .loc-card, .loc-act');
+    if (!host || host.disabled) return;
+    var rect = host.getBoundingClientRect();
+    var wave = document.createElement('span');
+    wave.className = 'ripple';
+    wave.style.left = (event.clientX - rect.left) + 'px';
+    wave.style.top = (event.clientY - rect.top) + 'px';
+    host.appendChild(wave);
+    host.classList.add('is-press');
+    setTimeout(function() {
+      if (wave.parentNode) wave.parentNode.removeChild(wave);
+      host.classList.remove('is-press');
+    }, 620);
+  }, { passive: true });
+
+  document.addEventListener('click', function(event) {
+    if (event.target.classList && event.target.classList.contains('modal')) {
+      event.target.classList.remove('is-open');
+    }
+  });
+
+  // ——— استخر آی‌پی اختصاصی: انتخاب تصادفی در پنجرهٔ تنظیمات کاربر ———
+  function fillRandomFromIpPool(button) {
+    var key = button.getAttribute('data-pool-fill');
+    var box = button.closest ? button.closest('.ip-pool') : null;
+    var field = document.getElementById('uf_' + key);
+    if (!box || !field) return;
+    var countInput = box.querySelector('.ip-pool-count');
+    var countrySelect = box.querySelector('.ip-pool-country');
+    var count = Math.max(1, Math.min(parseInt(countInput && countInput.value, 10) || 5, 64));
+    var cc = countrySelect ? countrySelect.value : '';
+    var pool = (INITIAL_DATA.ipPool || []).filter(function(item) { return !cc || item.cc === cc; });
+    if (!pool.length) return;
+    var names = INITIAL_DATA.ipPoolCountryNames || {};
+    var picked = pool.slice();
+    for (var i = picked.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = picked[i]; picked[i] = picked[j]; picked[j] = tmp;
+    }
+    picked = picked.slice(0, Math.min(count, picked.length));
+    var lines = picked.map(function(item) { return item.ip + ':443#' + (names[item.cc] || item.cc); });
+    var current = String(field.value || '').split(SEP_RE).map(function(s) { return s.trim(); }).filter(Boolean);
+    var seen = {};
+    current.forEach(function(line) { seen[line] = 1; });
+    lines.forEach(function(line) { if (!seen[line]) { seen[line] = 1; current.push(line); } });
+    field.value = current.join(NL);
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    showToast(lines.length + ' آی‌پی تصادفی به آدرس‌های دستی اضافه شد', 'ok');
+  }
+
+  document.addEventListener('click', function(event) {
+    var btn = event.target && event.target.closest ? event.target.closest('[data-pool-fill]') : null;
+    if (!btn) return;
+    event.preventDefault();
+    fillRandomFromIpPool(btn);
+  });
+
+  document.addEventListener('change', function(event) {
+    var target = event.target;
+    if (!target) return;
+    if (target.matches && target.matches('.switch input[data-key]')) {
+      var key = target.getAttribute('data-key');
+      if (key === 'frag' || key === 'ech') syncConditionalFields();
+    }
+    if (target.matches && target.matches('input[data-scan]')) {
+      toggleScanMode(target.getAttribute('data-scan'), target.checked);
+    }
+    if (target.id === 'uf_preset') applyPresetToForm();
+    if (target.id === 'dnsPreset') {
+      var dnsInput = document.querySelector('input[data-key="customDNS"]');
+      if (dnsInput && target.value !== 'custom') dnsInput.value = target.value;
+    }
+  });
+
+
+  if (lsGet('mili_theme') === 'light') document.body.classList.add('light-mode');
+  applyLanguage();
+  buildScanViews();
+  renderUsers();
+  renderLocations();
+  fillSettings();
+  syncConditionalFields();
+  renderMetrics();
+
+  // راهنما: دو ثانیه پس از ورود با یک حرکت نرم جلوی کاربر می‌آید؛ اگر تیک
+  // «دیگر خودکار باز نشود» را بزند، از دفعهٔ بعد فقط دستی باز می‌شود.
+  (function initHelp() {
+    var noAuto = $('helpNoAuto');
+    if (noAuto) {
+      noAuto.checked = lsGet('mili_help_off') === '1';
+      noAuto.addEventListener('change', function() {
+        lsSet('mili_help_off', noAuto.checked ? '1' : '0');
+      });
+    }
+    if (lsGet('mili_help_off') === '1') return;
+    setTimeout(function() {
+      if (document.querySelector('.modal.is-open')) return;
+      openHelp();
+    }, 2000);
+  })();
+
+  // نصب اپ: ثبت سرویس‌ورکر و نگه‌داشتن رویداد نصب مرورگر
+  ${PWA_CLIENT_JS}
+
+  // بررسی بی‌صدای نسخه در پس‌زمینه (خروجی ۱۰ دقیقه کش می‌شود)
+  setTimeout(function() { checkUpdate(true); }, 1200);
+
+  var hash = (window.location.hash || '').replace('#', '');
+  if (hash && document.querySelector('[data-panel="' + hash + '"]')) showPanel(hash);
+  if (window.__miliDiag) window.__miliDiag.ready = true;
+</script>
+${NEON_WAVES_AND_CURSOR_HTML}
+</body>
+</html>`);
+}
